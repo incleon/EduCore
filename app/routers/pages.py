@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user, get_optional_user
 from app.services.dashboard_service import DashboardFactory
 from app.services.crud_services import (
-    StudentService, TeacherService, DepartmentService,
+    StudentService, TeacherService, CourseService, DepartmentService,
     SubjectService, FeeService, LibraryService,
 )
 from app.repositories.concrete import AttendanceRepository, MarksRepository, SubjectRepository
@@ -142,22 +142,39 @@ def teacher_create_page(request: Request, db: Session = Depends(get_db),
 
 
 # ══════════════════════════════════════════════════════════════
+# COURSE PAGES
+# ══════════════════════════════════════════════════════════════
+
+@router.get("/courses", response_class=HTMLResponse)
+def courses_list(request: Request, db: Session = Depends(get_db),
+                 user=Depends(get_current_user), page: int = 1, search: str = ""):
+    result = CourseService(db).list(page, 100, search or None)
+    departments = DepartmentService(db).list(1, 100)["items"]
+    return templates.TemplateResponse(
+        "courses/list.html",
+        _context(request, user, **result, search=search, departments=departments),
+    )
+
+
+# ══════════════════════════════════════════════════════════════
 # DEPARTMENT PAGES
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/departments", response_class=HTMLResponse)
 def departments_list(request: Request, db: Session = Depends(get_db),
                      user=Depends(get_current_user), page: int = 1):
-    result = DepartmentService(db).list(page, 10)
+    result = DepartmentService(db).list(page, 100)
+    courses = CourseService(db).list(1, 100)["items"]
     return templates.TemplateResponse(
-        "departments/list.html", _context(request, user, **result),
+        "departments/list.html", _context(request, user, **result, courses=courses),
     )
 
 
 @router.get("/departments/create", response_class=HTMLResponse)
-def department_create_page(request: Request, user=Depends(get_current_user)):
+def department_create_page(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    courses = CourseService(db).list(1, 100)["items"]
     return templates.TemplateResponse(
-        "departments/create.html", _context(request, user),
+        "departments/create.html", _context(request, user, courses=courses),
     )
 
 # ══════════════════════════════════════════════════════════════

@@ -160,11 +160,21 @@ def seed_database(db: Session) -> None:
     db.flush()
     db.add(UserRole(user_id=librarian.id, role_id=role_map["librarian"]))
 
+    # ── 4.5 Create Courses ───────────────────────────────────
+    from app.models.course import Course
+    btech = Course(name="B.TECH", code="B.TECH", description="Bachelor of Technology", duration_years="4 years")
+    mba = Course(name="MBA", code="MBA", description="Master of Business Administration", duration_years="2 years")
+    bpharma = Course(name="B.PHARMA", code="B.PHARMA", description="Bachelor of Pharmacy", duration_years="4 years")
+    bcom = Course(name="B.COM", code="B.COM", description="Bachelor of Commerce", duration_years="3 years")
+    db.add_all([btech, mba, bpharma, bcom])
+    db.flush()
+
     # ── 5. Create Departments ────────────────────────────────
-    cs_dept = Department(name="Computer Science", code="CS", description="Department of Computer Science")
-    ee_dept = Department(name="Electrical Engineering", code="EE", description="Department of Electrical Engineering")
-    me_dept = Department(name="Mechanical Engineering", code="ME", description="Department of Mechanical Engineering")
-    db.add_all([cs_dept, ee_dept, me_dept])
+    cs_dept = Department(name="Computer Science", code="CS", description="Department of Computer Science", course_id=btech.id)
+    ee_dept = Department(name="Electrical Engineering", code="EE", description="Department of Electrical Engineering", course_id=btech.id)
+    me_dept = Department(name="Mechanical Engineering", code="ME", description="Department of Mechanical Engineering", course_id=btech.id)
+    finance_dept = Department(name="Finance", code="FIN", description="Department of Finance", course_id=mba.id)
+    db.add_all([cs_dept, ee_dept, me_dept, finance_dept])
     db.flush()
 
     # ── 6. Create Subjects ───────────────────────────────────

@@ -5,10 +5,19 @@
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-body">
-        <form onsubmit="handleCreate(event, '/api/departments', '/departments')">
+        <form onsubmit="handleCreateDepartment(event)">
             <div class="row g-3">
                 <div class="col-md-6"><label class="form-label">Name</label><input type="text" class="form-control" name="name" required></div>
                 <div class="col-md-6"><label class="form-label">Code</label><input type="text" class="form-control" name="code" required></div>
+                <div class="col-md-6">
+                    <label class="form-label">Course</label>
+                    <select class="form-select" name="course_id" required>
+                        <option value="">Select a course</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
             </div>
             <div class="mt-4">
@@ -18,4 +27,41 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function handleCreateDepartment(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    btn.disabled = true;
+
+    const form = e.target;
+    const data = {
+        name: form.name.value.trim(),
+        code: form.code.value.trim(),
+        course_id: parseInt(form.course_id.value),
+        description: form.description.value.trim() || null,
+    };
+
+    try {
+        const res = await fetch('/api/departments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+            window.location.href = '/departments';
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Failed to create department');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
+    }
+}
+</script>
 {% endblock %}

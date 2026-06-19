@@ -35,7 +35,7 @@ from app.middleware.audit_middleware import AuditMiddleware
 from app.routers.auth import router as auth_router
 from app.routers.api_routes import (
     users_router, students_router, teachers_router,
-    departments_router, subjects_router,
+    courses_router, departments_router, subjects_router,
     attendance_router, marks_router, fees_router, library_router,
 )
 from app.routers.pages import router as pages_router
@@ -125,6 +125,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router)
     app.include_router(students_router)
     app.include_router(teachers_router)
+    app.include_router(courses_router)
     app.include_router(departments_router)
     app.include_router(subjects_router)
     app.include_router(attendance_router)

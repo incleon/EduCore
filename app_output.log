@@ -1,0 +1,72 @@
+INFO:     Started server process [174845]
+INFO:     Waiting for application startup.
+2026-06-19 19:07:14 | INFO     | cms.app.main              | Starting Enterprise College Management System v1.0.0
+2026-06-19 19:07:14 | INFO     | cms.app.database.session  | Database initialized: sqlite:///./cms.db
+2026-06-19 19:07:14 | INFO     | cms.app.database.seed     | Database already seeded — skipping
+2026-06-19 19:07:14 | INFO     | cms.app.main              | Application started successfully!
+2026-06-19 19:07:14 | INFO     | cms.app.main              | API docs: http://localhost:8000/docs
+2026-06-19 19:07:14 | INFO     | cms.app.main              | Web app: http://localhost:8000/login
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | → GET /login | Client: 127.0.0.1
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | ← GET /login | Status: 200 | Duration: 69.74ms
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | → GET /static/css/style.css | Client: 127.0.0.1
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | → GET /static/js/app.js | Client: 127.0.0.1
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | ← GET /static/css/style.css | Status: 200 | Duration: 14.38ms
+2026-06-19 19:08:25 | INFO     | cms.middleware.audit      | ← GET /static/js/app.js | Status: 200 | Duration: 2.58ms
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | → GET /login | Client: 127.0.0.1
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | ← GET /login | Status: 200 | Duration: 3.04ms
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | → GET /static/css/style.css | Client: 127.0.0.1
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | → GET /static/js/app.js | Client: 127.0.0.1
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | ← GET /static/css/style.css | Status: 200 | Duration: 7.54ms
+2026-06-19 19:09:44 | INFO     | cms.middleware.audit      | ← GET /static/js/app.js | Status: 200 | Duration: 7.02ms
+2026-06-19 19:09:45 | INFO     | cms.middleware.audit      | → POST /auth/login | Client: 127.0.0.1
+2026-06-19 19:09:45 | INFO     | cms.app.services.auth_service | User authenticated successfully: admin@cms.edu
+2026-06-19 19:09:45 | INFO     | cms.middleware.audit      | ← POST /auth/login | Status: 200 | Duration: 402.75ms
+2026-06-19 19:09:45 | INFO     | cms.middleware.audit      | → GET /dashboard | Client: 127.0.0.1
+2026-06-19 19:09:45 | INFO     | cms.middleware.audit      | ← GET /dashboard | Status: 200 | Duration: 96.77ms
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | → GET /login | Client: 127.0.0.1
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | ← GET /login | Status: 200 | Duration: 3.31ms
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | → GET /static/css/style.css | Client: 127.0.0.1
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | → GET /static/js/app.js | Client: 127.0.0.1
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | ← GET /static/css/style.css | Status: 200 | Duration: 3.04ms
+2026-06-19 19:10:42 | INFO     | cms.middleware.audit      | ← GET /static/js/app.js | Status: 200 | Duration: 3.27ms
+2026-06-19 19:10:43 | INFO     | cms.middleware.audit      | → POST /auth/login | Client: 127.0.0.1
+2026-06-19 19:10:43 | INFO     | cms.app.services.auth_service | User authenticated successfully: admin@cms.edu
+2026-06-19 19:10:43 | INFO     | cms.middleware.audit      | ← POST /auth/login | Status: 200 | Duration: 331.2ms
+2026-06-19 19:10:43 | INFO     | cms.middleware.audit      | → GET /dashboard | Client: 127.0.0.1
+2026-06-19 19:10:44 | INFO     | cms.middleware.audit      | ← GET /dashboard | Status: 200 | Duration: 23.64ms
+2026-06-19 19:10:44 | INFO     | cms.middleware.audit      | → GET /courses | Client: 127.0.0.1
+2026-06-19 19:10:44 | INFO     | cms.middleware.audit      | ← GET /courses | Status: 200 | Duration: 46.43ms
+2026-06-19 19:10:44 | INFO     | cms.middleware.audit      | → GET /departments | Client: 127.0.0.1
+2026-06-19 19:10:44 | INFO     | cms.middleware.audit      | ← GET /departments | Status: 200 | Duration: 37.47ms
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | → GET /login | Client: 127.0.0.1
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | ← GET /login | Status: 200 | Duration: 2.46ms
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | → GET /static/css/style.css | Client: 127.0.0.1
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | ← GET /static/css/style.css | Status: 200 | Duration: 2.4ms
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | → GET /static/js/app.js | Client: 127.0.0.1
+2026-06-19 19:11:28 | INFO     | cms.middleware.audit      | ← GET /static/js/app.js | Status: 200 | Duration: 1.28ms
+2026-06-19 19:11:30 | INFO     | cms.middleware.audit      | → POST /auth/login | Client: 127.0.0.1
+2026-06-19 19:11:30 | INFO     | cms.app.services.auth_service | User authenticated successfully: admin@cms.edu
+2026-06-19 19:11:30 | INFO     | cms.middleware.audit      | ← POST /auth/login | Status: 200 | Duration: 325.91ms
+2026-06-19 19:11:30 | INFO     | cms.middleware.audit      | → GET /dashboard | Client: 127.0.0.1
+2026-06-19 19:11:30 | INFO     | cms.middleware.audit      | ← GET /dashboard | Status: 200 | Duration: 24.29ms
+2026-06-19 19:11:30 | INFO     | cms.middleware.audit      | → GET /courses | Client: 127.0.0.1
+2026-06-19 19:11:31 | INFO     | cms.middleware.audit      | ← GET /courses | Status: 200 | Duration: 20.04ms
+2026-06-19 19:11:31 | INFO     | cms.middleware.audit      | → GET /departments | Client: 127.0.0.1
+2026-06-19 19:11:31 | INFO     | cms.middleware.audit      | ← GET /departments | Status: 200 | Duration: 21.94ms
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | → GET /login | Client: 127.0.0.1
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | ← GET /login | Status: 200 | Duration: 2.95ms
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | → GET /static/css/style.css | Client: 127.0.0.1
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | → GET /static/js/app.js | Client: 127.0.0.1
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | ← GET /static/css/style.css | Status: 200 | Duration: 4.65ms
+2026-06-19 19:11:51 | INFO     | cms.middleware.audit      | ← GET /static/js/app.js | Status: 200 | Duration: 2.84ms
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | → POST /auth/login | Client: 127.0.0.1
+2026-06-19 19:11:53 | INFO     | cms.app.services.auth_service | User authenticated successfully: admin@cms.edu
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | ← POST /auth/login | Status: 200 | Duration: 328.61ms
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | → GET /dashboard | Client: 127.0.0.1
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | ← GET /dashboard | Status: 200 | Duration: 22.72ms
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | → GET /courses | Client: 127.0.0.1
+2026-06-19 19:11:53 | INFO     | cms.middleware.audit      | ← GET /courses | Status: 200 | Duration: 19.34ms
+2026-06-19 19:11:54 | INFO     | cms.middleware.audit      | → GET /departments | Client: 127.0.0.1
+2026-06-19 19:11:54 | INFO     | cms.middleware.audit      | ← GET /departments | Status: 200 | Duration: 19.95ms

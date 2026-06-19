@@ -22,6 +22,7 @@ from app.services.crud_services import (
 from app.schemas.user import UserCreate, UserUpdate
 from app.schemas.student import StudentCreate, StudentUpdate
 from app.schemas.teacher import TeacherCreate, TeacherUpdate
+from app.schemas.course import CourseCreate, CourseUpdate
 from app.schemas.department import DepartmentCreate, DepartmentUpdate
 from app.schemas.subject import SubjectCreate, SubjectUpdate, SubjectTeacherAssign
 from app.schemas.attendance import AttendanceCreate, AttendanceBulkCreate
@@ -233,6 +234,47 @@ def get_teachers_by_department(
         }
         for t in teachers
     ]
+
+
+# ══════════════════════════════════════════════════════════════
+# COURSES ROUTER
+# ══════════════════════════════════════════════════════════════
+
+courses_router = APIRouter(prefix="/api/courses", tags=["Courses"])
+
+
+@courses_router.get("")
+def list_courses(
+    page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None, db: Session = Depends(get_db),
+    current_user=Depends(PermissionChecker(["view_departments"])),
+):
+    return CourseService(db).list(page, page_size, search)
+
+
+@courses_router.get("/{course_id}")
+def get_course(course_id: int, db: Session = Depends(get_db),
+               current_user=Depends(PermissionChecker(["view_departments"]))):
+    return CourseService(db).get(course_id)
+
+
+@courses_router.post("", status_code=201)
+def create_course(data: CourseCreate, db: Session = Depends(get_db),
+                  current_user=Depends(PermissionChecker(["manage_departments"]))):
+    return CourseService(db).create(data.model_dump())
+
+
+@courses_router.put("/{course_id}")
+def update_course(course_id: int, data: CourseUpdate, db: Session = Depends(get_db),
+                  current_user=Depends(PermissionChecker(["manage_departments"]))):
+    return CourseService(db).update(course_id, data.model_dump(exclude_unset=True))
+
+
+@courses_router.delete("/{course_id}")
+def delete_course(course_id: int, db: Session = Depends(get_db),
+                  current_user=Depends(PermissionChecker(["manage_departments"]))):
+    CourseService(db).delete(course_id)
+    return {"message": "Course deleted successfully"}
 
 
 # ══════════════════════════════════════════════════════════════

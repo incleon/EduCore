@@ -43,6 +43,8 @@
                 {% endif %}
 
                 {% if 'view_departments' in permissions or 'manage_departments' in permissions %}
+                <li><a href="/courses" class="{% if '/courses' in request.url.path %}active{% endif %}">
+                    <i class="bi bi-journal-bookmark"></i><span>Courses</span></a></li>
                 <li><a href="/departments" class="{% if '/departments' in request.url.path %}active{% endif %}">
                     <i class="bi bi-building"></i><span>Departments</span></a></li>
                 {% endif %}
