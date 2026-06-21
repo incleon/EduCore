@@ -6,8 +6,8 @@ OOP Concepts: Inheritance, One-to-Many
 SQLAlchemy: One-to-Many relationships, back_populates
 """
 
-from sqlalchemy import Column, String, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Text, Integer
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 
 from app.database.base import BaseModel
 
