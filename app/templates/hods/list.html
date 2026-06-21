@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Heads of Departments{% endblock %}
+{% block page_title %}Faculty / HODs{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="mb-1 text-heading" style="font-weight:700;">Heads of Departments</h5>
+        <p class="text-muted mb-0" style="font-size:0.85rem;">Manage department heads</p>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-light rounded">
+        <form method="GET" action="/hods" class="row g-3 align-items-end" id="filterForm">
+            <div class="col-md-5">
+                <label class="form-label text-muted small fw-bold">Select Course to View Departments</label>
+                <select name="course_id" id="filter_course_id" class="form-select border-0 shadow-sm" onchange="this.form.submit()">
+                    <option value="">-- Select a Course --</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}" {% if current_course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if current_course_id %}
+            <div class="col-md-7 d-flex align-items-center">
+                <span class="badge bg-success-subtle text-success py-2 px-3"><i class="bi bi-check-circle me-1"></i>Showing departments for selected course</span>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if current_course_id %}
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="text-secondary small fw-bold text-uppercase py-3 ps-4">Department</th>
+                        <th class="text-secondary small fw-bold text-uppercase py-3">Course</th>
+                        <th class="text-secondary small fw-bold text-uppercase py-3">Current HOD</th>
+                        {% if 'manage_departments' in permissions %}
+                        <th class="text-secondary small fw-bold text-uppercase py-3 text-end pe-4">Actions</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in departments %}
+                    <tr>
+                        <td class="ps-4 py-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(59, 130, 246, 0.1); color: #3b82f6; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-building"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold">{{ dept.name }}</h6>
+                                    <span class="badge bg-secondary-subtle text-secondary">{{ dept.code }}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3">
+                            <span class="badge bg-primary-subtle text-primary">{{ dept.course.code if dept.course else 'N/A' }}</span>
+                        </td>
+                        <td class="py-3">
+                            {% if dept.hod %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="sidebar-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                    {{ dept.hod.user.full_name[0] | upper if dept.hod.user else 'H' }}
+                                </div>
+                                <div>
+                                    <div class="fw-bold" style="font-size: 0.9rem;">{{ dept.hod.user.full_name if dept.hod.user else 'Unknown' }}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ dept.hod.faculty_id }}</div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <span class="text-muted fst-italic small">No HOD assigned</span>
+                            {% endif %}
+                        </td>
+                        {% if 'manage_departments' in permissions %}
+                        <td class="text-end pe-4 py-3">
+                            <button class="btn btn-sm btn-outline-primary" onclick="openAssignModal({{ dept.id }}, '{{ dept.name }}', {{ dept.hod_id or 'null' }})">
+                                <i class="bi bi-person-lines-fill me-1"></i>{% if dept.hod %}Change HOD{% else %}Assign HOD{% endif %}
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="bi bi-building-x fs-2 mb-3 d-block opacity-50"></i>
+                            <p class="mb-0">No departments found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <div class="empty-state">
+        <i class="bi bi-journal-text fs-1 text-muted opacity-50 mb-3 d-block"></i>
+        <h5 class="fw-bold">No Course Selected</h5>
+        <p class="text-muted">Please select a course from the dropdown above to view and manage its departments and HODs.</p>
+    </div>
+</div>
+{% endif %}
+
+{% if 'manage_departments' in permissions %}
+<!-- Assign HOD Modal -->
+<div class="modal fade" id="assignHODModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Assign HOD</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-4">Select a teacher from the <strong id="modalDeptName"></strong> department to assign as the Head of Department. This will automatically grant them HOD privileges.</p>
+                <form id="assignHODForm" onsubmit="handleAssign(event)">
+                    <input type="hidden" id="modalDeptId">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">Select Teacher</label>
+                        <select id="modalTeacherId" class="form-select" required>
+                            <option value="">Loading teachers...</option>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary" id="assignBtn">Save Assignment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let modal;
+document.addEventListener('DOMContentLoaded', () => {
+    modal = new bootstrap.Modal(document.getElementById('assignHODModal'));
+});
+
+async function openAssignModal(deptId, deptName, currentHodId) {
+    document.getElementById('modalDeptId').value = deptId;
+    document.getElementById('modalDeptName').textContent = deptName;
+    
+    const select = document.getElementById('modalTeacherId');
+    select.innerHTML = '<option value="">Loading teachers...</option>';
+    
+    modal.show();
+    
+    try {
+        // Fetch teachers for this department
+        const res = await fetch(`/api/teachers/by-department/${deptId}`);
+        const teachers = await res.json();
+        
+        if (teachers.length === 0) {
+            select.innerHTML = '<option value="">No teachers found in this department</option>';
+            return;
+        }
+        
+        select.innerHTML = '<option value="">-- Select a Teacher --</option>';
+        teachers.forEach(t => {
+            const isSelected = t.id === currentHodId ? 'selected' : '';
+            select.innerHTML += `<option value="${t.id}" ${isSelected}>${t.full_name} (${t.faculty_id || t.employee_id})</option>`;
+        });
+    } catch (err) {
+        select.innerHTML = '<option value="">Error loading teachers</option>';
+    }
+}
+
+async function handleAssign(e) {
+    e.preventDefault();
+    const deptId = document.getElementById('modalDeptId').value;
+    const teacherId = document.getElementById('modalTeacherId').value;
+    const btn = document.getElementById('assignBtn');
+    
+    if (!teacherId) {
+        alert("Please select a teacher");
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+    
+    try {
+        const res = await fetch(`/api/departments/${deptId}/hod`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ teacher_id: parseInt(teacherId) })
+        });
+        
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            const data = await res.json();
+            alert(data.detail || 'Assignment failed');
+            btn.disabled = false;
+            btn.innerHTML = 'Save Assignment';
+        }
+    } catch (err) {
+        alert('An error occurred');
+        btn.disabled = false;
+        btn.innerHTML = 'Save Assignment';
+    }
+}
+</script>
+{% endif %}
+{% endblock %}

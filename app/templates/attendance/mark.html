@@ -14,18 +14,48 @@
 <div class="card">
     <div class="card-body">
         <form id="attendanceForm" onsubmit="submitAttendance(event)">
-            <div class="row g-3 mb-4">
-                <div class="col-md-4">
-                    <label class="form-label">Subject</label>
-                    <select class="form-select" id="subject_id" name="subject_id" required>
-                        <option value="">Select subject</option>
-                        {% for subject in subjects %}
-                        <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.code }})</option>
+            {% if 'admin' in roles %}
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-medium">Course</label>
+                    <select class="form-select" id="filterCourse" onchange="handleCourseChange()">
+                        <option value="">Select Course</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}">{{ course.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium">Department</label>
+                    <select class="form-select" id="filterDepartment" onchange="handleDepartmentChange()" disabled>
+                        <option value="">Select Dept</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" data-course-id="{{ dept.course_id }}" style="display:none;">{{ dept.code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium">Semester</label>
+                    <select class="form-select" id="filterSemester" onchange="handleSemesterChange()" disabled>
+                        <option value="">Select Sem</option>
+                        {% for i in range(1, 9) %}
+                        <option value="{{ i }}">Semester {{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-medium">Subject</label>
+                    <select class="form-select" id="subject_id" name="subject_id" required disabled>
+                        <option value="">Select Subject</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}" data-dept-id="{{ subject.department_id }}" data-semester="{{ subject.semester }}" style="display:none;">{{ subject.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row g-3 mb-4">
                 <div class="col-md-4">
-                    <label class="form-label">Date</label>
+                    <label class="form-label fw-medium">Date</label>
                     <input type="date" class="form-control" id="att_date" name="date" value="{{ today }}" required>
                 </div>
                 <div class="col-md-4">
@@ -35,6 +65,29 @@
                     </button>
                 </div>
             </div>
+            {% else %}
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">Assigned Subject</label>
+                    <select class="form-select" id="subject_id" name="subject_id" required>
+                        <option value="">Select subject</option>
+                        {% for subject in subjects %}
+                        <option value="{{ subject.id }}">{{ subject.name }} ({{ subject.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">Date</label>
+                    <input type="date" class="form-control" id="att_date" name="date" value="{{ today }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-primary w-100" onclick="loadStudents()">
+                        <i class="bi bi-search me-2"></i>Load Students
+                    </button>
+                </div>
+            </div>
+            {% endif %}
 
             <div id="studentList">
                 <div class="empty-state">
@@ -91,7 +144,118 @@ async function loadStudents() {
 
 async function submitAttendance(e) {
     e.preventDefault();
-    showFlash('Attendance marking feature coming soon with API integration', 'info');
+    const btn = document.querySelector('#submitBtnContainer button');
+    btn.disabled = true;
+    
+    const subjectId = document.getElementById('subject_id').value;
+    const attDate = document.getElementById('att_date').value;
+    
+    const records = [];
+    const form = e.target;
+    for (let i = 0; i < form.elements.length; i++) {
+        const el = form.elements[i];
+        if (el.name && el.name.startsWith('status_')) {
+            const studentId = parseInt(el.name.split('_')[1], 10);
+            records.push({
+                student_id: studentId,
+                status: el.value
+            });
+        }
+    }
+    
+    if (records.length === 0) {
+        showFlash('No students found to mark attendance', 'warning');
+        btn.disabled = false;
+        return;
+    }
+    
+    try {
+        const res = await fetch('/api/attendance/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subject_id: parseInt(subjectId, 10),
+                date: attDate,
+                records: records
+            })
+        });
+        
+        if (res.ok) {
+            window.location.href = '/attendance';
+        } else {
+            const err = await res.json();
+            showFlash(err.detail || 'Failed to mark attendance', 'danger');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        showFlash('Connection error. Please try again.', 'danger');
+        btn.disabled = false;
+    }
 }
+
+{% if 'admin' in roles %}
+function handleCourseChange() {
+    const courseId = document.getElementById('filterCourse').value;
+    const deptSelect = document.getElementById('filterDepartment');
+    const semSelect = document.getElementById('filterSemester');
+    const subjSelect = document.getElementById('subject_id');
+    
+    deptSelect.value = "";
+    semSelect.value = "";
+    subjSelect.value = "";
+    semSelect.disabled = true;
+    subjSelect.disabled = true;
+    
+    if (courseId) {
+        deptSelect.disabled = false;
+        Array.from(deptSelect.options).forEach(opt => {
+            if (opt.value === "" || opt.dataset.courseId === courseId) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    } else {
+        deptSelect.disabled = true;
+    }
+}
+
+function handleDepartmentChange() {
+    const deptId = document.getElementById('filterDepartment').value;
+    const semSelect = document.getElementById('filterSemester');
+    const subjSelect = document.getElementById('subject_id');
+    
+    semSelect.value = "";
+    subjSelect.value = "";
+    subjSelect.disabled = true;
+    
+    if (deptId) {
+        semSelect.disabled = false;
+    } else {
+        semSelect.disabled = true;
+    }
+}
+
+function handleSemesterChange() {
+    const sem = document.getElementById('filterSemester').value;
+    const deptId = document.getElementById('filterDepartment').value;
+    const subjSelect = document.getElementById('subject_id');
+    
+    subjSelect.value = "";
+    
+    if (sem && deptId) {
+        subjSelect.disabled = false;
+        Array.from(subjSelect.options).forEach(opt => {
+            if (opt.value === "" || (opt.dataset.deptId === deptId && opt.dataset.semester === sem)) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    } else {
+        subjSelect.disabled = true;
+    }
+}
+{% endif %}
 </script>
 {% endblock %}

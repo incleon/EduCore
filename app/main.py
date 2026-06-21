@@ -37,6 +37,7 @@ from app.routers.api_routes import (
     users_router, students_router, teachers_router,
     courses_router, departments_router, subjects_router,
     attendance_router, marks_router, fees_router, library_router,
+    timetables_router
 )
 from app.routers.pages import router as pages_router
 
@@ -132,6 +133,7 @@ def create_app() -> FastAPI:
     app.include_router(marks_router)
     app.include_router(fees_router)
     app.include_router(library_router)
+    app.include_router(timetables_router)
 
     # ── Register Page Routers (Jinja2 templates) ─────────────
     app.include_router(pages_router)

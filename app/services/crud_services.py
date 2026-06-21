@@ -146,14 +146,47 @@ class StudentService(IService):
         skip = (page - 1) * page_size
         if search:
             items = self._student_repo.search(
-                ["enrollment_number"], search, skip, page_size
+                ["enrollment_number", "student_id"], search, skip, page_size
             )
-            total = self._student_repo.search_count(["enrollment_number"], search)
+            total = self._student_repo.search_count(["enrollment_number", "student_id"], search)
         else:
             items = self._student_repo.get_all(skip, page_size, sort_by, sort_order)
             total = self._student_repo.count()
 
         return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+    def get_filtered_students(self, course_id: int = None, department_id: int = None):
+        return self._student_repo.get_filtered_students(course_id, department_id)
+
+    def _get_branch_code(self, department_code: str) -> str:
+        if department_code:
+            return department_code[:2].upper()
+        return "XX"
+
+    def generate_student_id(self, admission_year: int, branch_code: str) -> str:
+        from app.models.student import Student
+        from sqlalchemy import desc
+        
+        yy = str(admission_year)[-2:]
+        prefix = f"{yy}{branch_code}"
+        
+        last_student = (
+            self._db.query(Student)
+            .filter(Student.student_id.like(f"{prefix}%"))
+            .order_by(desc(Student.student_id))
+            .first()
+        )
+        
+        if last_student and last_student.student_id:
+            try:
+                last_seq = int(last_student.student_id[-3:])
+                next_seq = last_seq + 1
+            except ValueError:
+                next_seq = 1
+        else:
+            next_seq = 1
+            
+        return f"{prefix}{next_seq:03d}"
 
     def create(self, data: Dict[str, Any]):
         # Check duplicate enrollment
@@ -177,6 +210,31 @@ class StudentService(IService):
         student_role = self._role_repo.get_by_name("student")
         if student_role:
             self._user_repo.assign_role(user.id, student_role.id)
+
+        # Generate student_id
+        import datetime
+        admission_date = data.get("admission_date")
+        if admission_date:
+            try:
+                if isinstance(admission_date, str):
+                    year = datetime.datetime.strptime(admission_date, "%Y-%m-%d").year
+                else:
+                    year = admission_date.year
+            except:
+                year = datetime.datetime.now().year
+        else:
+            year = datetime.datetime.now().year
+            
+        dept_id = data.get("department_id")
+        dept_code = "XX"
+        if dept_id:
+            from app.services.crud_services import DepartmentService
+            dept = DepartmentService(self._db).get(dept_id)
+            if dept:
+                dept_code = dept.code
+                
+        branch_code = self._get_branch_code(dept_code)
+        data["student_id"] = self.generate_student_id(year, branch_code)
 
         # Create student profile
         data["user_id"] = user.id
@@ -212,6 +270,16 @@ class StudentService(IService):
         self._user_repo.soft_delete(student.user_id)
         return self._student_repo.soft_delete(id)
 
+    def get_students_for_subject(self, subject_id: int):
+        from app.repositories.concrete import SubjectRepository
+        subject = SubjectRepository(self._db).get_by_id(subject_id)
+        if not subject:
+            raise NotFoundException("Subject", subject_id)
+        return self._student_repo.get_by_department_and_semester(
+            department_id=subject.department_id,
+            semester=subject.semester
+        )
+
 
 # ══════════════════════════════════════════════════════════════
 # TEACHER SERVICE
@@ -236,13 +304,41 @@ class TeacherService(IService):
         skip = (page - 1) * page_size
         if search:
             items = self._teacher_repo.search(
-                ["employee_id"], search, skip, page_size
+                ["employee_id", "faculty_id"], search, skip, page_size
             )
-            total = self._teacher_repo.search_count(["employee_id"], search)
+            total = self._teacher_repo.search_count(["employee_id", "faculty_id"], search)
         else:
             items = self._teacher_repo.get_all(skip, page_size, sort_by, sort_order)
             total = self._teacher_repo.count()
         return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+    def get_filtered_teachers(self, course_id: int = None, department_id: int = None):
+        return self._teacher_repo.get_filtered_teachers(course_id, department_id)
+
+    def generate_faculty_id(self, joining_year: int) -> str:
+        from app.models.teacher import Teacher
+        from sqlalchemy import desc
+        
+        yy = str(joining_year)[-2:]
+        prefix = f"FC{yy}"
+        
+        last_teacher = (
+            self._db.query(Teacher)
+            .filter(Teacher.faculty_id.like(f"{prefix}%"))
+            .order_by(desc(Teacher.faculty_id))
+            .first()
+        )
+        
+        if last_teacher and last_teacher.faculty_id:
+            try:
+                last_seq = int(last_teacher.faculty_id[-6:])
+                next_seq = last_seq + 1
+            except ValueError:
+                next_seq = 1
+        else:
+            next_seq = 1
+            
+        return f"{prefix}{next_seq:06d}"
 
     def create(self, data: Dict[str, Any]):
         if not data.get("employee_id"):
@@ -268,6 +364,21 @@ class TeacherService(IService):
         teacher_role = self._role_repo.get_by_name("teacher")
         if teacher_role:
             self._user_repo.assign_role(user.id, teacher_role.id)
+
+        import datetime
+        joining_date = data.get("joining_date")
+        if joining_date:
+            try:
+                if isinstance(joining_date, str):
+                    year = datetime.datetime.strptime(joining_date, "%Y-%m-%d").year
+                else:
+                    year = joining_date.year
+            except:
+                year = datetime.datetime.now().year
+        else:
+            year = datetime.datetime.now().year
+            
+        data["faculty_id"] = self.generate_faculty_id(year)
 
         data["user_id"] = user.id
         teacher = self._teacher_repo.create(data)
@@ -382,6 +493,51 @@ class DepartmentService(IService):
     def delete(self, id: int) -> bool:
         return self._dept_repo.soft_delete(id)
 
+    def assign_hod(self, department_id: int, teacher_id: int):
+        from app.models.teacher import Teacher
+        from app.models.user import UserRole, Role
+        
+        dept = self._dept_repo.get_by_id(department_id)
+        if not dept:
+            raise NotFoundException("Department", department_id)
+            
+        teacher = self._db.query(Teacher).filter(Teacher.id == teacher_id).first()
+        if not teacher:
+            raise NotFoundException("Teacher", teacher_id)
+            
+        # Ensure teacher belongs to the department
+        if teacher.department_id != department_id:
+            raise ConflictException("Teacher does not belong to this department")
+            
+        hod_role = self._db.query(Role).filter(Role.name == "hod").first()
+        if not hod_role:
+            raise NotFoundException("Role", "hod")
+            
+        # 1. Remove hod role from current HOD if exists
+        if dept.hod_id and dept.hod_id != teacher_id:
+            old_hod = self._db.query(Teacher).filter(Teacher.id == dept.hod_id).first()
+            if old_hod:
+                old_ur = self._db.query(UserRole).filter(
+                    UserRole.user_id == old_hod.user_id,
+                    UserRole.role_id == hod_role.id
+                ).first()
+                if old_ur:
+                    self._db.delete(old_ur)
+                    
+        # 2. Assign hod role to new HOD
+        new_ur = self._db.query(UserRole).filter(
+            UserRole.user_id == teacher.user_id,
+            UserRole.role_id == hod_role.id
+        ).first()
+        if not new_ur:
+            new_ur = UserRole(user_id=teacher.user_id, role_id=hod_role.id)
+            self._db.add(new_ur)
+            
+        # 3. Update department
+        dept.hod_id = teacher_id
+        self._db.commit()
+        return True
+
 
 # ══════════════════════════════════════════════════════════════
 # SUBJECT SERVICE
@@ -426,6 +582,11 @@ class SubjectService(IService):
     def assign_teacher(self, subject_id: int, teacher_id: int, section: str = None):
         return self._subject_repo.assign_teacher(subject_id, teacher_id, section)
 
+    def get_filtered_subjects(self, department_id: int = None, semester: int = None):
+        if department_id:
+            return self._subject_repo.get_by_department(department_id, semester)
+        return self._subject_repo.get_all()
+
 
 # ══════════════════════════════════════════════════════════════
 # ATTENDANCE SERVICE
@@ -452,19 +613,28 @@ class AttendanceService(IService):
         return self._attendance_repo.create(data)
 
     def bulk_create(self, subject_id: int, att_date: date, records: list, teacher_id: int = None):
-        """Bulk create attendance for a class."""
-        created = []
+        """Bulk create or update attendance for a class."""
+        created_or_updated = []
         for record in records:
-            att_data = {
-                "student_id": record["student_id"],
-                "subject_id": subject_id,
-                "date": att_date,
-                "status": record.get("status", "present"),
-                "teacher_id": teacher_id,
-                "remarks": record.get("remarks"),
-            }
-            created.append(self._attendance_repo.create(att_data))
-        return created
+            existing = self._attendance_repo.get_by_student_subject_date(record["student_id"], subject_id, att_date)
+            if existing:
+                update_data = {
+                    "status": record.get("status", "present"),
+                    "teacher_id": teacher_id,
+                    "remarks": record.get("remarks"),
+                }
+                created_or_updated.append(self._attendance_repo.update(existing.id, update_data))
+            else:
+                att_data = {
+                    "student_id": record["student_id"],
+                    "subject_id": subject_id,
+                    "date": att_date,
+                    "status": record.get("status", "present"),
+                    "teacher_id": teacher_id,
+                    "remarks": record.get("remarks"),
+                }
+                created_or_updated.append(self._attendance_repo.create(att_data))
+        return created_or_updated
 
     def update(self, id: int, data: Dict[str, Any]):
         return self._attendance_repo.update(id, data)
@@ -569,6 +739,12 @@ class FeeService(IService):
     def get_pending_fees(self):
         return self._fee_repo.get_pending_fees()
 
+    def get_student_fees(self, student_id: int):
+        return self._fee_repo.get_student_fees(student_id)
+
+    def get_filtered_fees(self, course_id: int = None, department_id: int = None, semester: int = None, search: str = None):
+        return self._fee_repo.get_filtered_fees(course_id, department_id, semester, search)
+
 
 # ══════════════════════════════════════════════════════════════
 # LIBRARY SERVICE
@@ -651,6 +827,29 @@ class LibraryService(IService):
     def get_active_issues(self, student_id: int = None):
         return self._issue_repo.get_active_issues(student_id)
 
+    def get_dashboard_metrics(self):
+        from sqlalchemy import func
+        from app.models.library import LibraryBook, BookIssue
+        
+        total_books = self._db.query(func.sum(LibraryBook.total_copies)).filter(LibraryBook.is_deleted == False).scalar() or 0
+        available_books = self._db.query(func.sum(LibraryBook.available_copies)).filter(LibraryBook.is_deleted == False).scalar() or 0
+        
+        active_issues = self._db.query(func.count(BookIssue.id)).filter(BookIssue.status == "issued", BookIssue.is_deleted == False).scalar() or 0
+        
+        # Calculate overdue issues
+        overdue_issues = self._db.query(func.count(BookIssue.id)).filter(
+            BookIssue.status == "issued", 
+            BookIssue.due_date < date.today(),
+            BookIssue.is_deleted == False
+        ).scalar() or 0
+        
+        return {
+            "total_books": total_books,
+            "available_books": available_books,
+            "active_issues": active_issues,
+            "overdue_issues": overdue_issues
+        }
+
 
 # ══════════════════════════════════════════════════════════════
 # AUDIT SERVICE
@@ -677,6 +876,92 @@ class AuditService:
             "ip_address": ip_address,
             "user_agent": user_agent,
         })
+
+# ══════════════════════════════════════════════════════════════
+# TIMETABLE GRID SERVICE
+# ══════════════════════════════════════════════════════════════
+
+class TimetableGridService:
+    def __init__(self, db: Session):
+        from app.repositories.concrete import TimetableVersionRepository, TimetableSlotRepository
+        self._version_repo = TimetableVersionRepository(db)
+        self._slot_repo = TimetableSlotRepository(db)
+        self._db = db
+
+    def get_version(self, department_id: int, semester: int):
+        return self._version_repo.get_by_department_semester(department_id, semester)
+        
+    def get_pending_versions(self):
+        return self._version_repo.get_pending()
+        
+    def get_slots(self, version_id: int):
+        return self._slot_repo.get_by_version(version_id)
+        
+    def save_timetable(self, data: dict, user_id: int):
+        """
+        data = {
+            "department_id": 1,
+            "course_id": 1,
+            "semester": 1,
+            "action": "draft" | "submit",
+            "slots": [
+                {"day_of_week": 1, "slot_index": 1, "subject_id": 1, "teacher_id": 2},
+                ...
+            ]
+        }
+        """
+        department_id = data["department_id"]
+        semester = data["semester"]
+        
+        # Upsert Version
+        version = self.get_version(department_id, semester)
+        if not version:
+            version = self._version_repo.create({
+                "department_id": department_id,
+                "course_id": data["course_id"],
+                "semester": semester,
+                "status": "pending" if data.get("action") == "submit" else "draft",
+                "submitted_by_id": user_id
+            })
+        else:
+            update_data = {
+                "status": "pending" if data.get("action") == "submit" else "draft",
+                "submitted_by_id": user_id
+            }
+            self._version_repo.update(version.id, update_data)
+            
+        # Clear existing slots
+        existing_slots = self.get_slots(version.id)
+        for s in existing_slots:
+            self._slot_repo.hard_delete(s.id)
+            
+        # Create new slots
+        slots_data = data.get("slots", [])
+        for slot in slots_data:
+            if slot.get("is_free"):
+                self._slot_repo.create({
+                    "version_id": version.id,
+                    "day_of_week": slot["day_of_week"],
+                    "slot_index": slot["slot_index"],
+                    "subject_id": None,
+                    "teacher_id": None
+                })
+            elif slot.get("subject_id") and slot.get("teacher_id"):
+                self._slot_repo.create({
+                    "version_id": version.id,
+                    "day_of_week": slot["day_of_week"],
+                    "slot_index": slot["slot_index"],
+                    "subject_id": slot["subject_id"],
+                    "teacher_id": slot["teacher_id"]
+                })
+                
+        return version
+
+    def update_status(self, version_id: int, status: str, user_id: int):
+        update_data = {"status": status}
+        if status == "approved":
+            update_data["approved_by_id"] = user_id
+        return self._version_repo.update(version_id, update_data)
 
     def get_user_activity(self, user_id: int, limit: int = 50):
         return self._audit_repo.get_by_user(user_id, limit)

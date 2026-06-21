@@ -45,15 +45,15 @@ class Subject(BaseModel):
     )
 
     # ── RELATIONSHIPS ────────────────────────────────────────
-    department = relationship("Department", back_populates="subjects", lazy="joined")
-    teacher = relationship("Teacher", backref="assigned_subjects", lazy="joined")
+    department = relationship("Department", back_populates="subjects", lazy="selectin")
+    teacher = relationship("Teacher", backref="assigned_subjects", lazy="selectin")
 
     # MANY-TO-MANY with Teacher
     teacher_assignments = relationship(
         "SubjectTeacher",
         back_populates="subject",
         cascade="all, delete-orphan",
-        lazy="joined",
+        lazy="selectin",
     )
 
     attendance_records = relationship(
@@ -61,9 +61,6 @@ class Subject(BaseModel):
     )
     marks_records = relationship(
         "Marks", back_populates="subject", lazy="dynamic"
-    )
-    timetable_entries = relationship(
-        "Timetable", back_populates="subject", lazy="dynamic"
     )
 
     def __str__(self) -> str:

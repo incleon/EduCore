@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.core.dependencies import get_db, get_current_user, get_optional_user
 from app.services.dashboard_service import DashboardFactory
@@ -88,13 +89,28 @@ def dashboard(request: Request, db: Session = Depends(get_db),
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/students", response_class=HTMLResponse)
-def students_list(request: Request, db: Session = Depends(get_db),
-                  user=Depends(get_current_user), page: int = 1, search: str = ""):
-    result = StudentService(db).list(page, 500, search or None)
+def students_list(request: Request, course_id: Optional[str] = None, department_id: Optional[str] = None, 
+                  db: Session = Depends(get_db), user=Depends(get_current_user), page: int = 1, search: str = ""):
     departments = DepartmentService(db).list(1, 100)["items"]
+    courses = CourseService(db).list(1, 100)["items"]
+    
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    department_id = int(department_id) if department_id and str(department_id).isdigit() else None
+    
+    if course_id or department_id or search:
+        if search:
+            result = StudentService(db).list(page, 500, search)
+        else:
+            students = StudentService(db).get_filtered_students(course_id, department_id)
+            result = {"items": students, "total": len(students), "page": 1, "page_size": len(students)}
+        result["is_filtered"] = True
+    else:
+        result = {"items": [], "total": 0, "page": 1, "page_size": 0, "is_filtered": False}
+        
     return templates.TemplateResponse(
         "students/list.html",
-        _context(request, user, **result, search=search, departments=departments),
+        _context(request, user, **result, search=search, departments=departments, courses=courses,
+                 current_course_id=course_id, current_department_id=department_id),
     )
 
 
@@ -122,12 +138,28 @@ def student_detail(request: Request, student_id: int,
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/teachers", response_class=HTMLResponse)
-def teachers_list(request: Request, db: Session = Depends(get_db),
-                  user=Depends(get_current_user), page: int = 1, search: str = ""):
-    result = TeacherService(db).list(page, 10, search or None)
+def teachers_list(request: Request, course_id: Optional[str] = None, department_id: Optional[str] = None, 
+                  db: Session = Depends(get_db), user=Depends(get_current_user), page: int = 1, search: str = ""):
+    departments = DepartmentService(db).list(1, 100)["items"]
+    courses = CourseService(db).list(1, 100)["items"]
+    
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    department_id = int(department_id) if department_id and str(department_id).isdigit() else None
+    
+    if course_id or department_id or search:
+        if search:
+            result = TeacherService(db).list(page, 500, search)
+        else:
+            teachers = TeacherService(db).get_filtered_teachers(course_id, department_id)
+            result = {"items": teachers, "total": len(teachers), "page": 1, "page_size": len(teachers)}
+        result["is_filtered"] = True
+    else:
+        result = {"items": [], "total": 0, "page": 1, "page_size": 0, "is_filtered": False}
+        
     return templates.TemplateResponse(
         "teachers/list.html",
-        _context(request, user, **result, search=search),
+        _context(request, user, **result, search=search, departments=departments, courses=courses,
+                 current_course_id=course_id, current_department_id=department_id),
     )
 
 
@@ -138,6 +170,28 @@ def teacher_create_page(request: Request, db: Session = Depends(get_db),
     return templates.TemplateResponse(
         "teachers/create.html",
         _context(request, user, departments=departments),
+    )
+
+# ══════════════════════════════════════════════════════════════
+# HOD PAGES
+# ══════════════════════════════════════════════════════════════
+
+@router.get("/hods", response_class=HTMLResponse)
+def hods_list(request: Request, course_id: Optional[str] = None, db: Session = Depends(get_db),
+              user=Depends(get_current_user)):
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    
+    courses = CourseService(db).list(1, 100)["items"]
+    
+    # Filter departments manually if a course is selected
+    all_departments = DepartmentService(db).list(1, 100)["items"]
+    if course_id:
+        departments = [d for d in all_departments if d.course_id == course_id]
+    else:
+        departments = []
+        
+    return templates.TemplateResponse(
+        "hods/list.html", _context(request, user, departments=departments, courses=courses, current_course_id=course_id),
     )
 
 
@@ -156,6 +210,15 @@ def courses_list(request: Request, db: Session = Depends(get_db),
     )
 
 
+@router.get("/courses/{course_id}", response_class=HTMLResponse)
+def course_detail(request: Request, course_id: int, db: Session = Depends(get_db),
+                  user=Depends(get_current_user)):
+    course = CourseService(db).get(course_id)
+    return templates.TemplateResponse(
+        "courses/detail.html", _context(request, user, course=course),
+    )
+
+
 # ══════════════════════════════════════════════════════════════
 # DEPARTMENT PAGES
 # ══════════════════════════════════════════════════════════════
@@ -167,6 +230,16 @@ def departments_list(request: Request, db: Session = Depends(get_db),
     courses = CourseService(db).list(1, 100)["items"]
     return templates.TemplateResponse(
         "departments/list.html", _context(request, user, **result, courses=courses),
+    )
+
+
+@router.get("/departments/{dept_id}", response_class=HTMLResponse)
+def department_detail(request: Request, dept_id: int, db: Session = Depends(get_db),
+                      user=Depends(get_current_user)):
+    department = DepartmentService(db).get(dept_id)
+    courses = CourseService(db).list(1, 100)["items"]
+    return templates.TemplateResponse(
+        "departments/detail.html", _context(request, user, department=department, courses=courses),
     )
 
 
@@ -186,8 +259,10 @@ def subjects_list(request: Request, db: Session = Depends(get_db),
                  user=Depends(get_current_user), page: int = 1):
     result = SubjectService(db).list(page, 100)
     departments = DepartmentService(db).list(1, 100)["items"]
+    courses = CourseService(db).list(1, 100)["items"]
+    teachers = TeacherService(db).list(1, 100)["items"]
     return templates.TemplateResponse(
-        "subjects/list.html", _context(request, user, **result, departments=departments),
+        "subjects/list.html", _context(request, user, **result, departments=departments, courses=courses, teachers=teachers),
     )
 
 
@@ -200,7 +275,16 @@ def attendance_list(request: Request, db: Session = Depends(get_db),
                     user=Depends(get_current_user)):
     """View attendance records."""
     att_repo = AttendanceRepository(db)
-    records = att_repo.get_all(limit=50)
+    
+    if "admin" in user.roles:
+        records = att_repo.get_all_with_relations(limit=200)
+    elif "teacher" in user.roles and user.teacher:
+        records = att_repo.get_teacher_records(user.teacher.id, limit=500)
+    elif "student" in user.roles and user.student:
+        records = att_repo.get_student_records(user.student.id)
+    else:
+        records = []
+        
     return templates.TemplateResponse(
         "attendance/list.html",
         _context(request, user, records=records),
@@ -211,11 +295,24 @@ def attendance_list(request: Request, db: Session = Depends(get_db),
 def mark_attendance_page(request: Request, db: Session = Depends(get_db),
                          user=Depends(get_current_user)):
     """Mark attendance form page."""
+    from app.repositories.concrete import SubjectRepository
     subject_repo = SubjectRepository(db)
-    subjects = subject_repo.get_all()
+    
+    courses = []
+    departments = []
+    
+    if "admin" in user.roles:
+        subjects = subject_repo.get_all()
+        courses = CourseService(db).list(1, 100)["items"]
+        departments = DepartmentService(db).list(1, 100)["items"]
+    elif "teacher" in user.roles and user.teacher:
+        subjects = subject_repo.get_teacher_subjects(user.teacher.id)
+    else:
+        subjects = []
+        
     return templates.TemplateResponse(
         "attendance/mark.html",
-        _context(request, user, subjects=subjects, today=date.today().isoformat()),
+        _context(request, user, subjects=subjects, courses=courses, departments=departments, today=date.today().isoformat()),
     )
 
 
@@ -224,14 +321,39 @@ def mark_attendance_page(request: Request, db: Session = Depends(get_db),
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/marks", response_class=HTMLResponse)
-def marks_list(request: Request, db: Session = Depends(get_db),
-               user=Depends(get_current_user)):
+def marks_list(request: Request, course_id: Optional[str] = None, department_id: Optional[str] = None, semester: Optional[str] = None, search: str = "",
+               db: Session = Depends(get_db), user=Depends(get_current_user)):
     """View marks records."""
     marks_repo = MarksRepository(db)
-    records = marks_repo.get_all(limit=50)
+    from app.services.crud_services import CourseService, DepartmentService
+    
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    department_id = int(department_id) if department_id and str(department_id).isdigit() else None
+    semester = int(semester) if semester and str(semester).isdigit() else None
+    
+    courses = CourseService(db).list(page_size=100)["items"]
+    departments = DepartmentService(db).list(page_size=100)["items"]
+    is_filtered = False
+    
+    if "admin" in user.roles:
+        if course_id or department_id or semester or search:
+            records = marks_repo.get_filtered_marks(course_id, department_id, semester, search)
+            is_filtered = True
+        else:
+            records = []
+    elif "teacher" in user.roles and user.teacher:
+        records = marks_repo.get_teacher_records_with_relations(user.teacher.id, limit=1000)
+        is_filtered = True # Teachers always see their records
+    elif "student" in user.roles and user.student:
+        records = marks_repo.get_student_marks(user.student.id)
+        is_filtered = True # Students always see their records
+    else:
+        records = []
+        
     return templates.TemplateResponse(
         "marks/list.html",
-        _context(request, user, records=records),
+        _context(request, user, records=records, courses=courses, departments=departments,
+                 current_course_id=course_id, current_department_id=department_id, current_semester=semester, search=search, is_filtered=is_filtered),
     )
 
 
@@ -252,11 +374,30 @@ def upload_marks_page(request: Request, db: Session = Depends(get_db),
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/fees", response_class=HTMLResponse)
-def fees_list(request: Request, db: Session = Depends(get_db),
+def fees_list(request: Request, course_id: Optional[str] = None, department_id: Optional[str] = None, semester: Optional[str] = None, search: str = "", db: Session = Depends(get_db),
               user=Depends(get_current_user), page: int = 1):
-    result = FeeService(db).list(page, 10)
+    from app.services.crud_services import CourseService, DepartmentService
+    
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    department_id = int(department_id) if department_id and str(department_id).isdigit() else None
+    semester = int(semester) if semester and str(semester).isdigit() else None
+    
+    courses = CourseService(db).list(page_size=100)["items"]
+    departments = DepartmentService(db).list(page_size=100)["items"]
+    
+    if "student" in user.roles and user.student:
+        fees = FeeService(db).get_student_fees(user.student.id)
+        result = {"items": fees}
+    else:
+        if course_id or department_id or semester or search:
+            fees = FeeService(db).get_filtered_fees(course_id, department_id, semester, search)
+            result = {"items": fees, "is_filtered": True}
+        else:
+            result = {"items": [], "is_filtered": False}
+            
     return templates.TemplateResponse(
-        "fees/list.html", _context(request, user, **result),
+        "fees/list.html", _context(request, user, **result, courses=courses, departments=departments, 
+                                  current_course_id=course_id, current_department_id=department_id, current_semester=semester, search=search),
     )
 
 
@@ -267,9 +408,21 @@ def fees_list(request: Request, db: Session = Depends(get_db),
 @router.get("/library", response_class=HTMLResponse)
 def library_page(request: Request, db: Session = Depends(get_db),
                  user=Depends(get_current_user), page: int = 1, search: str = ""):
-    result = LibraryService(db).list(page, 10, search or None)
+    from app.services.crud_services import LibraryService
+    
+    lib_service = LibraryService(db)
+    result = lib_service.list(page, 50, search or None)
+    
+    metrics = lib_service.get_dashboard_metrics()
+    
+    if "student" in user.roles and user.student:
+        active_issues = lib_service.get_active_issues(user.student.id)
+    else:
+        active_issues = lib_service.get_active_issues()
+        
+    from datetime import date
     return templates.TemplateResponse(
-        "library/books.html", _context(request, user, **result, search=search),
+        "library/books.html", _context(request, user, **result, search=search, metrics=metrics, active_issues=active_issues, today_date=date.today()),
     )
 
 
@@ -278,32 +431,64 @@ def library_page(request: Request, db: Session = Depends(get_db),
 # ══════════════════════════════════════════════════════════════
 
 @router.get("/timetable", response_class=HTMLResponse)
-def timetable_page(request: Request, db: Session = Depends(get_db),
+def timetable_page(request: Request, course_id: Optional[str] = None, department_id: Optional[str] = None, semester: Optional[str] = None, db: Session = Depends(get_db),
                    user=Depends(get_current_user)):
-    from app.repositories.concrete import TimetableRepository
+    from app.services.crud_services import CourseService, DepartmentService, TimetableGridService, SubjectService, TeacherService
     
-    tt_repo = TimetableRepository(db)
-    records = []
+    course_id = int(course_id) if course_id and str(course_id).isdigit() else None
+    department_id = int(department_id) if department_id and str(department_id).isdigit() else None
+    semester = int(semester) if semester and str(semester).isdigit() else None
     
+    courses = CourseService(db).list(page_size=100)["items"]
+    departments = DepartmentService(db).list(page_size=100)["items"]
+    
+    tg_service = TimetableGridService(db)
+    
+    version = None
+    slots = []
+    
+    # Restrict scope based on role
     if "student" in user.roles and user.student:
-        records = tt_repo.get_by_student(user.student.semester, user.student.section)
+        department_id = user.student.department_id
+        semester = user.student.semester
     elif "teacher" in user.roles and user.teacher:
-        records = tt_repo.get_by_teacher(user.teacher.id)
-    else:
-        records = tt_repo.get_all()
+        # Teachers and HODs are locked to their department
+        department_id = user.teacher.department_id
+        if "hod" in user.roles:
+            course_id = user.teacher.department.course_id if user.teacher.department else None
 
-    # Format records into a weekly grid
-    time_slots = {}
-    for r in records:
-        time_str = f"{r.start_time.strftime('%H:%M')} - {r.end_time.strftime('%H:%M')}"
-        if time_str not in time_slots:
-            time_slots[time_str] = {"time": time_str}
-        time_slots[time_str][r.day.value] = r
+    # Only attempt to load a grid if department and semester are selected
+    if department_id and semester:
+        version = tg_service.get_version(department_id, semester)
+        if version:
+            slots = tg_service.get_slots(version.id)
+            
+    # For HOD editing, load subjects and teachers for their department
+    subjects = []
+    dept_teachers = []
+    if "hod" in user.roles and department_id:
+        subjects = SubjectService(db).get_filtered_subjects(department_id=department_id, semester=semester)
+        dept_teachers = TeacherService(db).get_filtered_teachers(department_id=department_id)
 
-    formatted_records = sorted(time_slots.values(), key=lambda x: x["time"])
+    pending_versions = []
+    if "manage_timetable" in user.permissions:
+        pending_versions = tg_service.get_pending_versions()
 
     return templates.TemplateResponse(
-        "timetable/list.html", _context(request, user, records=formatted_records),
+        "timetable/list.html", _context(
+            request, user, 
+            version=version, 
+            slots=slots, 
+            courses=courses, 
+            departments=departments,
+            subjects=subjects,
+            dept_teachers=dept_teachers,
+            pending_versions=pending_versions,
+            current_course_id=course_id, 
+            current_department_id=department_id, 
+            current_semester=semester,
+            edit_mode=request.query_params.get("edit") == "1"
+        ),
     )
 
 

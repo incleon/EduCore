@@ -1,59 +1,47 @@
 """
-Timetable Model
+Timetable Document Model
 =================
 
-Weekly class schedule entries.
+PDF Timetables uploaded by Admins.
 """
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SAEnum, Time
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-import enum
+import datetime
 
 from app.database.base import BaseModel
 
 
-class DayOfWeek(str, enum.Enum):
-    MONDAY = "monday"
-    TUESDAY = "tuesday"
-    WEDNESDAY = "wednesday"
-    THURSDAY = "thursday"
-    FRIDAY = "friday"
-    SATURDAY = "saturday"
-
-
-class Timetable(BaseModel):
+class TimetableDocument(BaseModel):
     """
-    Timetable entry — a single class slot in the weekly schedule.
-
-    Relationships:
-    - MANY-TO-ONE: Timetable → Subject
-    - MANY-TO-ONE: Timetable → Teacher
+    Timetable entry — a PDF document representing the weekly schedule.
     """
 
-    __tablename__ = "timetables"
+    __tablename__ = "timetable_documents"
 
-    subject_id = Column(
-        Integer, ForeignKey("subjects.id", ondelete="CASCADE"),
+    course_id = Column(
+        Integer, ForeignKey("courses.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    teacher_id = Column(
-        Integer, ForeignKey("teachers.id", ondelete="SET NULL"),
-        nullable=True, index=True,
+    department_id = Column(
+        Integer, ForeignKey("departments.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    semester = Column(Integer, nullable=False)
+    
+    file_path = Column(String(500), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    uploaded_by_id = Column(
+        Integer, ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
-    day = Column(SAEnum(DayOfWeek), nullable=False)
-    start_time = Column(Time, nullable=False)
-    end_time = Column(Time, nullable=False)
-    room_number = Column(String(50), nullable=True)
-    section = Column(String(10), nullable=True)
-    semester = Column(Integer, nullable=False)
-
     # ── RELATIONSHIPS ────────────────────────────────────────
-    subject = relationship("Subject", back_populates="timetable_entries")
-    teacher = relationship("Teacher", lazy="joined")
+    course = relationship("Course", lazy="selectin")
+    department = relationship("Department", lazy="selectin")
+    uploaded_by = relationship("User", lazy="selectin")
 
     def __repr__(self) -> str:
-        return (
-            f"<Timetable(day={self.day}, subject={self.subject_id}, "
-            f"time={self.start_time}-{self.end_time})>"
-        )
+        return f"<TimetableDocument(course={self.course_id}, dept={self.department_id}, sem={self.semester})>"

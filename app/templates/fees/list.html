@@ -1,28 +1,274 @@
 {% extends "base.html" %}
+
 {% block title %}Fees{% endblock %}
+
 {% block page_title %}Fee Management{% endblock %}
+
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead><tr><th>Student</th><th>Type</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
-                <tbody>
-                {% for fee in items %}
-                <tr>
-                    <td>{{ fee.student.user.full_name if fee.student and fee.student.user else 'N/A' }}</td>
-                    <td>{{ fee.fee_type.value if fee.fee_type else '' }}</td>
-                    <td>₹{{ "%.0f"|format(fee.amount) }}</td>
-                    <td>₹{{ "%.0f"|format(fee.paid_amount) }}</td>
-                    <td>₹{{ "%.0f"|format(fee.balance) }}</td>
-                    <td><span class="badge bg-{{ 'success' if fee.status.value == 'paid' else 'warning' if fee.status.value == 'partial' else 'danger' }}">{{ fee.status.value }}</span></td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6" class="text-center text-muted py-4">No fee records found</td></tr>
-                {% endfor %}
-                </tbody>
-            </table>
+{% if 'student' in roles %}
+    <!-- Student View: Cards -->
+    <div class="row g-4">
+        {% for fee in items %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <h5 class="card-title mb-1">{{ fee.fee_type.value|title }} Fee</h5>
+                            <p class="text-muted small mb-0">Due: {{ fee.due_date if fee.due_date else 'N/A' }}</p>
+                        </div>
+                        <span class="badge bg-{{ 'success' if fee.status.value == 'paid' else 'warning' if fee.status.value == 'partial' else 'danger' }}">{{ fee.status.value|upper }}</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Total Amount</span>
+                            <strong>₹{{ "%.0f"|format(fee.amount) }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Paid</span>
+                            <span class="text-success">₹{{ "%.0f"|format(fee.paid_amount) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between pt-2 border-top mt-2">
+                            <span class="text-muted fw-bold">Balance</span>
+                            <strong class="text-danger">₹{{ "%.0f"|format(fee.balance) }}</strong>
+                        </div>
+                    </div>
+                    
+                    {% if fee.status.value != 'paid' %}
+                    <button class="btn btn-primary w-100" onclick="payFee({{ fee.id }}, {{ fee.balance }})">
+                        Pay ₹{{ "%.0f"|format(fee.balance) }} Now
+                    </button>
+                    {% else %}
+                    <button class="btn btn-outline-success w-100" disabled>
+                        <i class="bi bi-check-circle me-1"></i> Fully Paid
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card text-center py-5">
+                <div class="card-body">
+                    <p class="text-muted mb-0">No fee records found for your account.</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- Admin/Accountant View: Hierarchical Accordion -->
+    
+    <!-- Filter Section -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body bg-light rounded">
+            <form method="GET" action="/fees" class="row g-3 align-items-end" id="filterForm">
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">Course</label>
+                    <select name="course_id" id="course_id" class="form-select border-0 shadow-sm">
+                        <option value="">All</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if current_course_id == course.id %}selected{% endif %}>{{ course.code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Department</label>
+                    <select name="department_id" id="department_id" class="form-select border-0 shadow-sm">
+                        <option value="">All</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}" data-course="{{ dept.course_id }}" {% if current_department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-muted small fw-bold">Semester</label>
+                    <select name="semester" class="form-select border-0 shadow-sm">
+                        <option value="">All</option>
+                        {% for i in range(1, 9) %}
+                        <option value="{{ i }}" {% if current_semester == i %}selected{% endif %}>Sem {{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small fw-bold">Search (Name/ID)</label>
+                    <input type="text" name="search" class="form-control border-0 shadow-sm" placeholder="Search..." value="{{ search }}">
+                </div>
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
+                        <i class="bi bi-funnel me-1"></i> Filter
+                    </button>
+                    <a href="/fees" class="btn btn-light border shadow-sm" title="Clear Filters">
+                        <i class="bi bi-x-circle text-muted"></i>
+                    </a>
+                </div>
+            </form>
         </div>
     </div>
-</div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 border-bottom">
+            <h5 class="mb-0 fw-bold">Student Fee Overview</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if not is_filtered %}
+            <div class="p-5 text-center text-muted">
+                <i class="bi bi-funnel fs-1 mb-3 d-block text-secondary opacity-50"></i>
+                <h5 class="fw-bold">Select Filters to View Fees</h5>
+                <p class="mb-0">Please select a Course, Department, or Semester above to load student fee records.</p>
+            </div>
+            {% else %}
+            <div class="accordion accordion-flush" id="feesAccordion">
+            {% set students_grouped = items | groupby('student_id') %}
+            {% for student_id, student_fees in students_grouped %}
+                {% set student = student_fees[0].student %}
+                {% set total_amount = student_fees | sum(attribute='amount') %}
+                {% set total_paid = student_fees | sum(attribute='paid_amount') %}
+                {% set total_balance = student_fees | sum(attribute='balance') %}
+                
+                <div class="accordion-item border-bottom">
+                    <h2 class="accordion-header" id="heading{{ student_id }}">
+                        <button class="accordion-button collapsed py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ student_id }}" aria-expanded="false" aria-controls="collapse{{ student_id }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-secondary"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ student.user.full_name if student and student.user else 'Unknown Student' }}</div>
+                                        <div class="small text-muted">{{ student.enrollment_number if student else 'N/A' }}</div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-{{ 'danger' if total_balance > 0 else 'success' }}">
+                                        Balance: ₹{{ "%.0f"|format(total_balance) }}
+                                    </div>
+                                    <div class="small text-muted">Paid: ₹{{ "%.0f"|format(total_paid) }} / Total: ₹{{ "%.0f"|format(total_amount) }}</div>
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ student_id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ student_id }}" data-bs-parent="#feesAccordion">
+                        <div class="accordion-body bg-light p-3 border-top">
+                            <div class="table-responsive bg-white rounded shadow-sm border">
+                                <table class="table table-sm table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="ps-3">Fee Type</th>
+                                            <th>Due Date</th>
+                                            <th>Amount</th>
+                                            <th>Paid</th>
+                                            <th>Balance</th>
+                                            <th class="pe-3 text-end">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for fee in student_fees %}
+                                        <tr>
+                                            <td class="ps-3 fw-medium">{{ fee.fee_type.value|title if fee.fee_type else 'N/A' }}</td>
+                                            <td class="text-muted">{{ fee.due_date if fee.due_date else 'N/A' }}</td>
+                                            <td>₹{{ "%.0f"|format(fee.amount) }}</td>
+                                            <td class="text-success">₹{{ "%.0f"|format(fee.paid_amount) }}</td>
+                                            <td class="text-danger fw-bold">₹{{ "%.0f"|format(fee.balance) }}</td>
+                                            <td class="pe-3 text-end">
+                                                <span class="badge bg-{{ 'success' if fee.status.value == 'paid' else 'warning' if fee.status.value == 'partial' else 'danger' }}">
+                                                    {{ fee.status.value|upper }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                    No fee records found for the selected filters.
+                </div>
+            {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Payment Simulation Script & Filters -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('course_id');
+    const deptSelect = document.getElementById('department_id');
+    
+    if(courseSelect && deptSelect) {
+        // Capture original selected value to maintain state after JS runs
+        const originalDeptValue = deptSelect.value;
+        
+        courseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            const options = deptSelect.options;
+            let firstVisible = null;
+            let currentSelectedStillVisible = false;
+            
+            for(let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                if(opt.value === "") {
+                    opt.style.display = '';
+                    continue;
+                }
+                
+                if(!courseId || opt.getAttribute('data-course') === courseId) {
+                    opt.style.display = '';
+                    if(!firstVisible) firstVisible = opt;
+                    if(opt.selected) currentSelectedStillVisible = true;
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+            
+            // If the currently selected department belongs to a different course, reset it
+            if(courseId && !currentSelectedStillVisible && deptSelect.value !== "") {
+                deptSelect.value = "";
+            }
+        });
+        
+        // Trigger initially to set up state based on URL params
+        courseSelect.dispatchEvent(new Event('change'));
+        // Restore original value if it was wiped by the dispatchEvent
+        if (originalDeptValue) {
+            deptSelect.value = originalDeptValue;
+        }
+    }
+});
+
+async function payFee(feeId, amount) {
+    if(!confirm('Simulate payment of ₹' + amount + '?')) return;
+    
+    try {
+        const response = await fetch(`/api/fees/${feeId}/pay`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                paid_amount: amount,
+                payment_method: "online"
+            })
+        });
+        
+        if (response.ok) {
+            alert('Payment successful!');
+            window.location.reload();
+        } else {
+            const err = await response.json();
+            alert('Payment failed: ' + (err.detail || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while processing the payment.');
+    }
+}
+</script>
 {% endblock %}

@@ -25,7 +25,7 @@
                         Mark Attendance
                     </a>
                     <a href="/marks/upload" class="quick-action">
-                        <i style="background:rgba(99,102,241,0.15);color:var(--accent-primary-light);"><span class="bi bi-clipboard-data"></span></i>
+                        <i class="bg-primary"><span class="bi bi-clipboard-data"></span></i>
                         Upload Marks
                     </a>
                     <a href="/students" class="quick-action">
@@ -37,6 +37,32 @@
         </div>
     </div>
     <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header"><h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Faculty Information</h6></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Full Name</div>
+                        <div style="font-size:0.9rem;font-weight:600;color:var(--text-heading);">{{ user.full_name }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Email</div>
+                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.email }}</div>
+                    </div>
+                    {% if user.teacher %}
+                    <div class="col-6">
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Faculty ID</div>
+                        <div style="font-size:0.9rem;"><code class="text-primary fw-bold">{{ user.teacher.faculty_id or user.teacher.employee_id }}</code></div>
+                    </div>
+                    <div class="col-6">
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Department</div>
+                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.teacher.department.name if user.teacher.department else 'N/A' }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header"><h6 class="mb-0"><i class="bi bi-book me-2"></i>Assigned Subjects</h6></div>
             <div class="card-body">

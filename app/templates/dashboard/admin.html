@@ -1,84 +1,274 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
-{% block page_title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Overview{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── ENTERPRISE SAAS DASHBOARD STYLES ───────────────────────────────────── */
+
+/* KPI Ribbon */
+.kpi-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kpi-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+/* Panel Styles */
+.ent-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.ent-panel-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ent-panel-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Action Menu */
+.action-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+}
+
+.action-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.action-menu-item:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.action-menu-icon {
+    margin-right: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-tertiary);
+    width: 20px;
+    text-align: center;
+}
+
+.action-menu-chevron {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+}
+
+/* Enterprise Table */
+.ent-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.ent-table th {
+    background-color: var(--bg-secondary);
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.ent-table td {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.ent-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ent-table tbody tr:hover {
+    background-color: rgba(0,0,0,0.01);
+}
+
+/* Status Badges */
+.ent-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.ent-badge-active {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: rgb(21, 128, 61);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Stats Cards -->
-<div class="row g-4 mb-4">
+
+<!-- KPI Ribbon -->
+<div class="kpi-ribbon">
     {% for stat in dashboard.stats %}
-    <div class="col-xl-3 col-md-6">
-        <div class="stat-card stat-{{ stat.color }}">
-            <div class="stat-icon"><i class="bi {{ stat.icon }}"></i></div>
-            <div class="stat-info">
-                <h3>{{ stat.value }}</h3>
-                <p>{{ stat.label }}</p>
-            </div>
+    <div class="kpi-card">
+        <div class="kpi-info">
+            <span class="kpi-label">{{ stat.label }}</span>
+            <span class="kpi-value">{{ stat.value }}</span>
+        </div>
+        <div class="kpi-icon text-{{ stat.color }} bg-{{ stat.color }}-subtle">
+            <i class="bi {{ stat.icon }}"></i>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<!-- Quick Actions + Recent Students -->
 <div class="row g-4">
+    <!-- Quick Actions Panel -->
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield-check me-2"></i>System Actions</h6></div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/students" class="quick-action">
-                        <i style="background:rgba(99,102,241,0.15);color:var(--accent-primary-light);"><span class="bi bi-people"></span></i>
-                        Manage Students
-                    </a>
-                    <a href="/teachers" class="quick-action">
-                        <i style="background:rgba(34,197,94,0.15);color:var(--accent-green);"><span class="bi bi-person-badge"></span></i>
-                        Manage Teachers
-                    </a>
-                    <a href="/departments" class="quick-action">
-                        <i style="background:rgba(59,130,246,0.15);color:var(--accent-blue);"><span class="bi bi-building"></span></i>
-                        Departments
-                    </a>
-                    <a href="/fees" class="quick-action">
-                        <i style="background:rgba(245,158,11,0.15);color:var(--accent-amber);"><span class="bi bi-cash-stack"></span></i>
-                        Fee Management
-                    </a>
-                    <a href="/library" class="quick-action">
-                        <i style="background:rgba(236,72,153,0.15);color:var(--accent-pink);"><span class="bi bi-book"></span></i>
-                        Library
-                    </a>
-                </div>
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <h6 class="ent-panel-title"><i class="bi bi-grid-1x2 me-2"></i>Modules</h6>
+            </div>
+            <div class="action-menu">
+                <a href="/students" class="action-menu-item">
+                    <i class="bi bi-people action-menu-icon"></i> Student Management
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
+                <a href="/teachers" class="action-menu-item">
+                    <i class="bi bi-person-badge action-menu-icon"></i> Faculty Directory
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
+                <a href="/departments" class="action-menu-item">
+                    <i class="bi bi-building action-menu-icon"></i> Departments & Courses
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
+                <a href="/fees" class="action-menu-item">
+                    <i class="bi bi-cash-stack action-menu-icon"></i> Fee Tracking
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
+                <a href="/marks" class="action-menu-item">
+                    <i class="bi bi-journal-check action-menu-icon"></i> Examinations
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
+                <a href="/library" class="action-menu-item">
+                    <i class="bi bi-book action-menu-icon"></i> Library System
+                    <i class="bi bi-chevron-right action-menu-chevron"></i>
+                </a>
             </div>
         </div>
     </div>
+
+    <!-- Data Table Panel -->
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent Admissions</h6></div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Name</th><th>Enrollment</th><th>Department</th><th>Status</th></tr></thead>
-                        <tbody>
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <h6 class="ent-panel-title"><i class="bi bi-clock-history me-2"></i>Recent Enrollments</h6>
+                <a href="/students" class="btn btn-sm btn-link text-decoration-none p-0" style="font-size:0.8rem;font-weight:600;">View All</a>
+            </div>
+            <div class="table-responsive flex-grow-1">
+                <table class="table ent-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Student ID</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         {% for student in dashboard.recent_students %}
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <div style="width:32px;height:32px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;color:#fff;">
+                                    <div style="width:28px;height:28px;border-radius:4px;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;color:#fff;">
                                         {{ student.user.full_name[0] | upper if student.user else '?' }}
                                     </div>
-                                    {{ student.user.full_name if student.user else 'N/A' }}
+                                    <span class="fw-medium text-dark">{{ student.user.full_name if student.user else 'Unknown' }}</span>
                                 </div>
                             </td>
-                            <td><code>{{ student.enrollment_number }}</code></td>
-                            <td>{{ student.department.name if student.department else 'N/A' }}</td>
-                            <td><span class="badge badge-status-active">Active</span></td>
+                            <td><code class="text-primary fw-bold">{{ student.student_id or student.enrollment_number }}</code></td>
+                            <td>{{ student.department.name if student.department else 'Unassigned' }}</td>
+                            <td><span class="ent-badge ent-badge-active">Active</span></td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox" style="font-size:1.5rem;display:block;margin-bottom:8px;opacity:0.4;"></i>No recent admissions</td></tr>
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
+                                No recent enrollments found.
+                            </td>
+                        </tr>
                         {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}

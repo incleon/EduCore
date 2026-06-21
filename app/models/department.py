@@ -56,7 +56,7 @@ class Department(BaseModel):
     course = relationship(
         "Course",
         back_populates="departments",
-        lazy="joined",
+        lazy="selectin",
     )
 
     # ONE-TO-MANY: Department has many students (AGGREGATION)
@@ -85,7 +85,7 @@ class Department(BaseModel):
     hod = relationship(
         "Teacher",
         foreign_keys=[hod_id],
-        lazy="joined",
+        lazy="selectin",
     )
 
     def __str__(self) -> str:

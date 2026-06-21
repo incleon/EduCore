@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +11,22 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="/static/css/style.css" rel="stylesheet">
+    <style>
+        .sidebar-nav .collapse li a {
+            color: rgba(255, 255, 255, 0.65) !important;
+        }
+        .sidebar-nav .collapse li a:hover {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+        .sidebar-nav .collapse li a.active {
+            color: #ffffff !important;
+        }
+    </style>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -24,9 +37,9 @@
     <!-- ═══ LAYOUT ═══ -->
     <div class="d-flex">
         <nav id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <i class="bi bi-mortarboard-fill"></i>
-                <span>CMS <small style="font-size:0.55em;font-weight:400;color:var(--text-muted);margin-left:2px">v1.0</small></span>
+            <div class="sidebar-header d-flex flex-column align-items-center justify-content-center overflow-hidden" style="padding: 10px; min-height: 70px; position: relative;">
+                <img src="/static/institute.png" alt="Institute Logo" style="height: 50px; width: 100%; object-fit: contain; transform: scale(4) translateY(3px); transform-origin: center;">
+                <span class="text-muted mt-2" style="font-size: 0.55rem; font-weight: normal; letter-spacing: 0.5px; line-height: 1; z-index: 10; position: relative;">powered by EduCore</span>
             </div>
             <ul class="sidebar-nav">
                 <li><a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">
@@ -38,20 +51,42 @@
                 {% endif %}
 
                 {% if 'view_teachers' in permissions or 'manage_teachers' in permissions %}
-                <li><a href="/teachers" class="{% if '/teachers' in request.url.path %}active{% endif %}">
-                    <i class="bi bi-person-badge"></i><span>Teachers</span></a></li>
+                <li>
+                    <a href="#facultySubmenu" data-bs-toggle="collapse" aria-expanded="{% if '/teachers' in request.url.path or '/hods' in request.url.path %}true{% else %}false{% endif %}" class="{% if '/teachers' in request.url.path or '/hods' in request.url.path %}active{% endif %}">
+                        <i class="bi bi-person-badge"></i>
+                        <span class="flex-grow-1">Faculty</span>
+                        <i class="bi bi-chevron-down" style="font-size: 0.75rem; width: auto; opacity: 0.7;"></i>
+                    </a>
+                    <ul class="collapse list-unstyled {% if '/teachers' in request.url.path or '/hods' in request.url.path %}show{% endif %}" id="facultySubmenu">
+                        <li><a href="/hods" class="{% if '/hods' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
+                            <i class="bi bi-award"></i><span>HODs</span></a></li>
+                        <li><a href="/teachers" class="{% if '/teachers' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
+                            <i class="bi bi-people"></i><span>Teachers</span></a></li>
+                    </ul>
+                </li>
                 {% endif %}
 
-                {% if 'view_departments' in permissions or 'manage_departments' in permissions %}
-                <li><a href="/courses" class="{% if '/courses' in request.url.path %}active{% endif %}">
-                    <i class="bi bi-journal-bookmark"></i><span>Courses</span></a></li>
-                <li><a href="/departments" class="{% if '/departments' in request.url.path %}active{% endif %}">
-                    <i class="bi bi-building"></i><span>Departments</span></a></li>
-                {% endif %}
+                {% if 'view_departments' in permissions or 'manage_departments' in permissions or 'view_subjects' in permissions or 'manage_subjects' in permissions %}
+                <li>
+                    <a href="#academicsSubmenu" data-bs-toggle="collapse" aria-expanded="{% if '/courses' in request.url.path or '/departments' in request.url.path or '/subjects' in request.url.path %}true{% else %}false{% endif %}" class="{% if '/courses' in request.url.path or '/departments' in request.url.path or '/subjects' in request.url.path %}active{% endif %}">
+                        <i class="bi bi-mortarboard"></i>
+                        <span class="flex-grow-1">Academics</span>
+                        <i class="bi bi-chevron-down" style="font-size: 0.75rem; width: auto; opacity: 0.7;"></i>
+                    </a>
+                    <ul class="collapse list-unstyled {% if '/courses' in request.url.path or '/departments' in request.url.path or '/subjects' in request.url.path %}show{% endif %}" id="academicsSubmenu">
+                        {% if 'view_departments' in permissions or 'manage_departments' in permissions %}
+                        <li><a href="/courses" class="{% if '/courses' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
+                            <i class="bi bi-journal-bookmark"></i><span>Courses</span></a></li>
+                        <li><a href="/departments" class="{% if '/departments' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
+                            <i class="bi bi-building"></i><span>Departments</span></a></li>
+                        {% endif %}
 
-                {% if 'view_subjects' in permissions or 'manage_subjects' in permissions %}
-                <li><a href="/subjects" class="{% if '/subjects' in request.url.path %}active{% endif %}">
-                    <i class="bi bi-journal-bookmark"></i><span>Subjects</span></a></li>
+                        {% if 'view_subjects' in permissions or 'manage_subjects' in permissions %}
+                        <li><a href="/subjects" class="{% if '/subjects' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
+                            <i class="bi bi-book"></i><span>Subjects</span></a></li>
+                        {% endif %}
+                    </ul>
+                </li>
                 {% endif %}
 
                 {% if 'view_attendance' in permissions or 'mark_attendance' in permissions %}
@@ -85,9 +120,7 @@
 
             <div class="sidebar-footer">
                 <div class="d-flex align-items-center gap-3" style="padding: 4px 0;">
-                    <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;color:#fff;flex-shrink:0;">
-                        {{ user.full_name[0] | upper }}
-                    </div>
+                    <div class="sidebar-avatar">{{ user.full_name[0] | upper }}</div>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:0.82rem;font-weight:600;color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.full_name }}</div>
                         <div style="font-size:0.72rem;color:var(--text-muted);">{{ roles[0] | default('user') | title }}</div>
@@ -110,7 +143,7 @@
                     <a href="/notifications" class="btn btn-link p-0 position-relative" style="color: var(--text-secondary); font-size: 1.1rem;">
                         <i class="bi bi-bell"></i>
                     </a>
-                    <span class="badge bg-primary-subtle text-primary" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;">{{ roles[0] | default('user') }}</span>
+                    <span class="role-badge">{{ roles[0] | default('user') | title }}</span>
                     <div class="dropdown">
                         <button class="btn btn-link dropdown-toggle user-menu p-0" data-bs-toggle="dropdown" style="font-size:0.9rem;">
                             <i class="bi bi-person-circle me-1"></i>

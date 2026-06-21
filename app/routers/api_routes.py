@@ -8,7 +8,7 @@ Each router:
 - Returns consistent response format
 """
 
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
@@ -229,6 +229,7 @@ def get_teachers_by_department(
         {
             "id": t.id,
             "employee_id": t.employee_id,
+            "faculty_id": t.faculty_id,
             "full_name": t.user.full_name if t.user else "Unknown",
             "designation": t.designation,
         }
@@ -317,6 +318,15 @@ def delete_department(dept_id: int, db: Session = Depends(get_db),
     DepartmentService(db).delete(dept_id)
     return {"message": "Department deleted successfully"}
 
+from pydantic import BaseModel
+class AssignHODRequest(BaseModel):
+    teacher_id: int
+
+@departments_router.put("/{dept_id}/hod")
+def assign_hod(dept_id: int, data: AssignHODRequest, db: Session = Depends(get_db),
+               current_user=Depends(PermissionChecker(["manage_departments"]))):
+    DepartmentService(db).assign_hod(dept_id, data.teacher_id)
+    return {"message": "HOD assigned successfully"}
 
 # ══════════════════════════════════════════════════════════════
 # SUBJECTS ROUTER
@@ -349,6 +359,21 @@ def delete_subject(subject_id: int, db: Session = Depends(get_db),
                    current_user=Depends(PermissionChecker(["manage_subjects"]))):
     SubjectService(db).delete(subject_id)
     return {"message": "Subject deleted successfully"}
+
+
+@subjects_router.get("/{subject_id}/students")
+def get_subject_students(subject_id: int, db: Session = Depends(get_db),
+                         current_user=Depends(get_current_user)):
+    students = StudentService(db).get_students_for_subject(subject_id)
+    return [
+        {
+            "id": s.id,
+            "enrollment_number": s.enrollment_number,
+            "full_name": s.user.full_name if s.user else None,
+            "name": s.user.full_name if s.user else None,
+        }
+        for s in students
+    ]
 
 
 # ══════════════════════════════════════════════════════════════
@@ -441,7 +466,14 @@ def create_fee(data: FeeCreate, db: Session = Depends(get_db),
 
 @fees_router.post("/{fee_id}/pay")
 def pay_fee(fee_id: int, data: FeePayment, db: Session = Depends(get_db),
-            current_user=Depends(PermissionChecker(["manage_fees"]))):
+            current_user=Depends(get_current_user)):
+    fee = FeeService(db).get(fee_id)
+    
+    if not current_user.has_permission("manage_fees"):
+        if not current_user.student or fee.student_id != current_user.student.id:
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException(detail="You do not have permission to pay this fee")
+            
     return FeeService(db).record_payment(fee_id, data.paid_amount, data.payment_method)
 
 
@@ -493,3 +525,47 @@ def return_book(issue_id: int, data: BookIssueReturn, db: Session = Depends(get_
 def list_issues(student_id: Optional[int] = None, db: Session = Depends(get_db),
                 current_user=Depends(PermissionChecker(["view_library"]))):
     return LibraryService(db).get_active_issues(student_id)
+
+# ══════════════════════════════════════════════════════════════
+# TIMETABLES ROUTER
+# ══════════════════════════════════════════════════════════════
+
+from pydantic import BaseModel, Field
+
+class TimetableSlotSchema(BaseModel):
+    day_of_week: int
+    slot_index: int
+    subject_id: Optional[int] = None
+    teacher_id: Optional[int] = None
+    is_free: Optional[bool] = False
+
+class TimetableSaveRequest(BaseModel):
+    department_id: int
+    course_id: int
+    semester: int
+    action: str = Field(..., description="'draft' or 'submit'")
+    slots: List[TimetableSlotSchema]
+
+timetables_router = APIRouter(prefix="/api/timetables", tags=["Timetables"])
+
+@timetables_router.post("/version", status_code=200)
+def save_timetable(data: TimetableSaveRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    if not current_user.has_permission("manage_timetable"):
+        if not ("hod" in current_user.roles and current_user.teacher and current_user.teacher.department_id == data.department_id):
+            from app.core.exceptions import UnauthorizedException
+            raise UnauthorizedException(detail="Not authorized to edit timetables for this department")
+            
+    from app.services.crud_services import TimetableGridService
+    service = TimetableGridService(db)
+    version = service.save_timetable(data.model_dump(), current_user.id)
+    return {"message": f"Timetable saved as {version.status}", "version_id": version.id}
+
+class TimetableStatusRequest(BaseModel):
+    status: str = Field(..., description="'approved' or 'rejected'")
+
+@timetables_router.put("/version/{version_id}/status")
+def update_timetable_status(version_id: int, data: TimetableStatusRequest, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["manage_timetable"]))):
+    from app.services.crud_services import TimetableGridService
+    service = TimetableGridService(db)
+    service.update_status(version_id, data.status, current_user.id)
+    return {"message": f"Timetable marked as {data.status}"}

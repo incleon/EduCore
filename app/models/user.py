@@ -107,7 +107,7 @@ class User(BaseModel):
         "UserRole",
         back_populates="user",
         cascade="all, delete-orphan",
-        lazy="joined",
+        lazy="selectin",
         doc="User's role assignments",
     )
 
@@ -250,7 +250,7 @@ class Role(BaseModel):
         "RolePermission",
         back_populates="role",
         cascade="all, delete-orphan",
-        lazy="joined",
+        lazy="selectin",
     )
 
     # MANY-TO-MANY back-reference: Role is assigned to many users

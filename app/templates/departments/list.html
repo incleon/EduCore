@@ -2,441 +2,131 @@
 {% block title %}Departments{% endblock %}
 {% block page_title %}Department Management{% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── Course Grid ─────────────────────────────────────── */
-.course-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.course-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 28px 24px;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.course-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.course-card:hover {
-    transform: translateY(-6px);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-lg);
-}
-
-.course-card:hover::before {
-    opacity: 1;
-}
-
-/* Gradient variations per card position */
-.course-card:nth-child(6n+1)::before { background: var(--gradient-primary); }
-.course-card:nth-child(6n+2)::before { background: var(--gradient-success); }
-.course-card:nth-child(6n+3)::before { background: var(--gradient-warning); }
-.course-card:nth-child(6n+4)::before { background: var(--gradient-danger); }
-.course-card:nth-child(6n+5)::before { background: var(--gradient-info); }
-.course-card:nth-child(6n+6)::before { background: var(--gradient-dark); }
-
-.course-card:nth-child(6n+1) .course-icon { background: rgba(99, 102, 241, 0.12); color: var(--accent-primary-light); }
-.course-card:nth-child(6n+2) .course-icon { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); }
-.course-card:nth-child(6n+3) .course-icon { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
-.course-card:nth-child(6n+4) .course-icon { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
-.course-card:nth-child(6n+5) .course-icon { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); }
-.course-card:nth-child(6n+6) .course-icon { background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); }
-
-.course-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    transition: var(--transition);
-}
-
-.course-card:hover .course-icon {
-    transform: scale(1.08);
-}
-
-.course-card-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.course-card-info h5 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    letter-spacing: -0.01em;
-}
-
-.course-card-info p {
-    margin: 3px 0 0;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.course-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
-}
-
-.course-dept-count {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.course-dept-count .count-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-}
-
-.course-card-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    transition: var(--transition);
-}
-
-.course-card:hover .course-card-arrow {
-    background: rgba(99, 102, 241, 0.15);
-    color: var(--accent-primary-light);
-    transform: translateX(3px);
-}
-
-/* ── Department Detail Panel ─────────────────────────────────── */
-#deptDetailPanel {
-    animation: fadeInUp 0.35s ease-out;
-}
-
-.back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
-}
-
-.back-btn:hover {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.3);
-    color: var(--accent-primary-light);
-}
-
-.back-btn i {
-    font-size: 1rem;
-    transition: transform 0.2s ease;
-}
-
-.back-btn:hover i {
-    transform: translateX(-3px);
-}
-
-.dept-detail-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    margin-bottom: 20px;
-}
-
-.dept-detail-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-    flex-shrink: 0;
-}
-
-.dept-detail-info h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.dept-detail-info p {
-    margin: 2px 0 0;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* ── Smooth transitions for view switching ───────────────── */
-.view-container {
-    transition: opacity 0.2s ease;
-}
-
-.view-container.hiding {
-    opacity: 0;
-}
-
-/* ── Empty department state ──────────────────────────────── */
-.empty-dept-state {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--text-muted);
-}
-
-.empty-dept-state i {
-    font-size: 3rem;
-    margin-bottom: 16px;
-    opacity: 0.3;
-    display: block;
-}
-
-.empty-dept-state p {
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-@media (max-width: 576px) {
-    .course-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-{% endblock %}
-
 {% block content %}
-<!-- ═══ COURSE GRID VIEW (Default) ═══ -->
-<div id="courseGridView" class="view-container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <p class="text-muted mb-0" style="font-size:0.85rem;">
-                <i class="bi bi-journal-bookmark me-1"></i>Select a course to view its departments
-            </p>
-        </div>
+<div class="page-header">
+    <div>
+        <h1 class="page-heading">Departments</h1>
+        <p class="page-subheading">Manage college departments</p>
+    </div>
+    <div class="page-actions">
         {% if 'manage_departments' in permissions %}
-        <a href="/departments/create" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Add Department
-        </a>
-        {% endif %}
-    </div>
-
-    <!-- Course Cards Grid -->
-    {% if courses | length > 0 %}
-    <div class="course-grid">
-        {% for course in courses %}
-        {% set ns = namespace(count=0) %}
-        {% for dept in items %}
-            {% if dept.course_id == course.id %}
-                {% set ns.count = ns.count + 1 %}
-            {% endif %}
-        {% endfor %}
-        <div class="course-card" onclick="showCourseDepts({{ course.id }}, '{{ course.name }}', '{{ course.code }}')" id="courseCard-{{ course.id }}">
-            <div class="course-card-header">
-                <div class="course-icon">
-                    <i class="bi bi-journal-bookmark"></i>
-                </div>
-                <div class="course-card-info">
-                    <h5>{{ course.name }}</h5>
-                    <p><code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">{{ course.code }}</code></p>
-                </div>
-            </div>
-            <div class="course-card-footer">
-                <div class="course-dept-count">
-                    <div class="count-badge">{{ ns.count }}</div>
-                    <span>Department{{ 's' if ns.count != 1 }} included</span>
-                </div>
-                <div class="course-card-arrow">
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-dept-state">
-        <i class="bi bi-journal-bookmark"></i>
-        <p>No courses found. Create courses first to organize departments.</p>
-    </div>
-    {% endif %}
-</div>
-
-<!-- ═══ DEPARTMENT LIST VIEW (Shown on course click) ═══ -->
-<div id="deptDetailPanel" class="view-container" style="display:none;">
-    <!-- Back Button + Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button class="back-btn" onclick="showCourseGrid()" id="backToCourses">
-            <i class="bi bi-arrow-left"></i>
-            <span>All Courses</span>
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="offcanvas" data-bs-target="#addDepartmentOffcanvas">
+            <i class="bi bi-plus me-1"></i> Add Department
         </button>
-        {% if 'manage_departments' in permissions %}
-        <a href="/departments/create" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Add Department
-        </a>
         {% endif %}
     </div>
-
-    <!-- Selected Course Header -->
-    <div class="dept-detail-header" id="courseDetailHeader">
-        <div class="dept-detail-icon">
-            <i class="bi bi-journal-bookmark"></i>
-        </div>
-        <div class="dept-detail-info">
-            <h4 id="selectedCourseName">Course Name</h4>
-            <p id="selectedCourseMeta">Loading departments...</p>
-        </div>
-    </div>
-
-    <!-- Department Table (All departments, filtered by JS per course) -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Code</th><th>Name</th>
-                            <th>Description</th>
-                            {% if 'manage_departments' in permissions %}<th>Actions</th>{% endif %}
-                        </tr>
-                    </thead>
-                    <tbody id="deptTableBody">
-                    <!-- Populated dynamically by JS -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<script>
-const allDepts = [
+<div class="row g-4">
     {% for dept in items %}
-    {
-        id: {{ dept.id }},
-        name: "{{ dept.name | e }}",
-        code: "{{ dept.code | e }}",
-        course_id: {{ dept.course_id }},
-        description: "{{ (dept.description or '') | e }}"
-    },
-    {% endfor %}
-];
-
-const canManage = {{ 'true' if 'manage_departments' in permissions else 'false' }};
-
-function showCourseDepts(courseId, courseName, courseCode) {
-    const courseDepts = allDepts.filter(d => d.course_id === courseId);
-
-    document.getElementById('selectedCourseName').textContent = courseName;
-    document.getElementById('selectedCourseMeta').innerHTML =
-        '<code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">' + courseCode + '</code>' +
-        ' &nbsp;·&nbsp; ' + courseDepts.length + ' department' + (courseDepts.length !== 1 ? 's' : '') + ' included';
-
-    const tbody = document.getElementById('deptTableBody');
-    if (courseDepts.length === 0) {
-        const colCount = canManage ? 4 : 3;
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="${colCount}" class="text-center text-muted py-5">
-                    <i class="bi bi-building-x" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>
-                    No departments in this course yet. Click "Add Department" to get started.
-                </td>
-            </tr>`;
-    } else {
-        tbody.innerHTML = courseDepts.map(dept => `
-            <tr style="animation: fadeInUp 0.3s ease-out;">
-                <td><code>${dept.code}</code></td>
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <div style="width:32px;height:32px;border-radius:8px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">
-                            ${dept.name[0].toUpperCase()}
+    <div class="col-md-6 col-lg-4">
+        <a href="/departments/{{ dept.id }}" class="text-decoration-none">
+            <div class="card stat-card stat-success h-100" style="padding: 20px;">
+                <div class="d-flex justify-content-between align-items-start w-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon" style="background: rgba(46, 204, 113, 0.1); color: var(--accent-success);">
+                            <i class="bi bi-building"></i>
                         </div>
-                        ${dept.name}
+                        <div class="stat-info text-start">
+                            <h3 style="font-size: 1.15rem;">{{ dept.code }}</h3>
+                            <p class="mb-1" style="font-size: 0.95rem;">{{ dept.name }}</p>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ dept.course.code if dept.course else 'No Course' }}</span>
+                        </div>
                     </div>
-                </td>
-                <td><span class="text-muted" style="font-size:0.82rem;">${dept.description || '—'}</span></td>
-                ${canManage ? `
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('departments', ${dept.id})" title="Delete department">
+                    {% if 'manage_departments' in permissions %}
+                    <button class="btn btn-sm btn-link text-danger p-0" onclick="event.preventDefault(); deleteItem('departments', {{ dept.id }});" style="z-index: 2;">
                         <i class="bi bi-trash"></i>
                     </button>
-                </td>` : ''}
-            </tr>
-        `).join('');
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card p-5 text-center shadow-sm">
+            <div class="empty-state">
+                <i class="bi bi-building-x"></i>
+                <h5 class="text-muted">No departments found</h5>
+                <p>Get started by adding a new department.</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if 'manage_departments' in permissions %}
+<!-- Offcanvas Drawer for Add Department -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="addDepartmentOffcanvas" aria-labelledby="addDepartmentOffcanvasLabel" style="background: var(--bg-card); border-left: 1px solid var(--border-color);">
+    <div class="offcanvas-header border-bottom border-secondary-subtle">
+        <h5 class="offcanvas-title" id="addDepartmentOffcanvasLabel"><i class="bi bi-building-add me-2 text-primary"></i>New Department</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="addDepartmentForm" onsubmit="handleAddDepartment(event)">
+            <div class="mb-4">
+                <label class="form-label">Course <span class="text-danger">*</span></label>
+                <select class="form-select" name="course_id" required>
+                    <option value="">Select Course</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}">{{ course.name }} ({{ course.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Department Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="e.g. Computer Science" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Department Code <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="code" placeholder="e.g. CSE" required maxlength="20">
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="4" placeholder="Brief description (optional)"></textarea>
+            </div>
+            <div class="d-grid mt-5">
+                <button type="submit" class="btn btn-primary btn-lg" id="saveDeptBtn">
+                    <i class="bi bi-check-lg me-1"></i>Save Department
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function handleAddDepartment(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveDeptBtn');
+    btn.disabled = true;
+
+    const form = e.target;
+    const data = {
+        name: form.name.value.trim(),
+        code: form.code.value.trim().toUpperCase(),
+        course_id: parseInt(form.course_id.value, 10),
+        description: form.description.value.trim() || null,
+    };
+
+    try {
+        const res = await fetch('/api/departments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Failed to create department');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
     }
-
-    const gridView = document.getElementById('courseGridView');
-    const detailPanel = document.getElementById('deptDetailPanel');
-
-    gridView.classList.add('hiding');
-    setTimeout(() => {
-        gridView.style.display = 'none';
-        gridView.classList.remove('hiding');
-        detailPanel.style.display = 'block';
-    }, 200);
-}
-
-function showCourseGrid() {
-    const gridView = document.getElementById('courseGridView');
-    const detailPanel = document.getElementById('deptDetailPanel');
-
-    detailPanel.classList.add('hiding');
-    setTimeout(() => {
-        detailPanel.style.display = 'none';
-        detailPanel.classList.remove('hiding');
-        gridView.style.display = 'block';
-    }, 200);
 }
 </script>
+{% endif %}
 {% endblock %}

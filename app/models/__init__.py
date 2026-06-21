@@ -21,6 +21,6 @@ from app.models.attendance import Attendance  # noqa
 from app.models.marks import Marks  # noqa
 from app.models.fee import Fee  # noqa
 from app.models.library import LibraryBook, BookIssue  # noqa
-from app.models.timetable import Timetable  # noqa
+from app.models.timetable_grid import TimetableVersion, TimetableSlot  # noqa
 from app.models.notification import Notification  # noqa
 from app.models.audit_log import AuditLog  # noqa

@@ -25,7 +25,7 @@
                         My Attendance
                     </a>
                     <a href="/marks" class="quick-action">
-                        <i style="background:rgba(99,102,241,0.15);color:var(--accent-primary-light);"><span class="bi bi-clipboard-data"></span></i>
+                        <i class="bg-primary"><span class="bi bi-clipboard-data"></span></i>
                         My Marks
                     </a>
                     <a href="/fees" class="quick-action">
@@ -55,8 +55,8 @@
                     </div>
                     {% if user.student %}
                     <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Enrollment No.</div>
-                        <div style="font-size:0.9rem;"><code>{{ user.student.enrollment_number }}</code></div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Student ID</div>
+                        <div style="font-size:0.9rem;"><code>{{ user.student.student_id or user.student.enrollment_number }}</code></div>
                     </div>
                     <div class="col-6">
                         <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Semester</div>

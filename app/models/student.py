@@ -61,6 +61,13 @@ class Student(BaseModel):
     )
 
     # ── Student-Specific Fields ──────────────────────────────
+    student_id = Column(
+        String(20),
+        unique=True,
+        nullable=False,
+        index=True,
+        doc="Auto-generated student ID (Format: YYBBSSS)",
+    )
     enrollment_number = Column(
         String(50),
         unique=True,
@@ -86,14 +93,14 @@ class Student(BaseModel):
     user = relationship(
         "User",
         back_populates="student",
-        lazy="joined",
+        lazy="selectin",
     )
 
     # MANY-TO-ONE: Student belongs to a Department (AGGREGATION)
     department = relationship(
         "Department",
         back_populates="students",
-        lazy="joined",
+        lazy="selectin",
     )
 
     # ONE-TO-MANY: Student has many attendance records

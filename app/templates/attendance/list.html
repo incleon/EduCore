@@ -3,47 +3,519 @@
 {% block page_title %}Attendance Records{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="page-header">
     <div>
-        <h5 class="mb-1 text-heading" style="font-weight:700;">Attendance</h5>
-        <p class="text-muted mb-0" style="font-size:0.85rem;">View and manage attendance records</p>
+        <h1 class="page-heading">Attendance</h1>
+        <p class="page-subheading">View and manage attendance records</p>
     </div>
-    {% if 'mark_attendance' in permissions %}
-    <a href="/attendance/mark" class="btn btn-primary"><i class="bi bi-plus-lg me-2"></i>Mark Attendance</a>
-    {% endif %}
+    <div class="page-actions">
+        {% if 'mark_attendance' in permissions %}
+        <a href="/attendance/mark" class="btn btn-primary">
+            <i class="bi bi-plus me-1"></i> Mark Attendance
+        </a>
+        {% endif %}
+    </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
+{% if 'student' in roles and 'admin' not in roles and 'teacher' not in roles %}
+{# ═══════════════════════════════════════════════════════════ #}
+{# STUDENT CALENDAR VIEW                                       #}
+{# ═══════════════════════════════════════════════════════════ #}
+<style>
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    padding: 1.5rem;
+    max-width: 380px;
+    margin: 0 auto;
+}
+.calendar-header-cell {
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--bs-secondary);
+    padding-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.calendar-cell {
+    aspect-ratio: 1;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    font-size: 0.9rem;
+    position: relative;
+    transition: transform 0.1s ease;
+    background: transparent;
+    color: var(--text-primary);
+}
+.calendar-cell:not(.empty):not(.weekend):hover {
+    transform: scale(1.1);
+    z-index: 2;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.calendar-cell.weekend {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-secondary);
+    border-color: var(--bs-border-color);
+    opacity: 0.7;
+}
+.calendar-cell.present {
+    background-color: #28a745 !important;
+    color: white !important;
+    border-color: #28a745 !important;
+}
+.calendar-cell.absent {
+    background-color: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545 !important;
+}
+.calendar-cell.late {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+    border-color: #ffc107 !important;
+}
+.calendar-cell.excused {
+    background-color: #17a2b8 !important;
+    color: white !important;
+    border-color: #17a2b8 !important;
+}
+.calendar-cell.empty {
+    border: none;
+    background: transparent;
+}
+.calendar-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text-primary);
+    color: var(--bg-card);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+}
+.calendar-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--text-primary) transparent transparent transparent;
+}
+.calendar-cell:hover .calendar-tooltip {
+    display: block;
+}
+.no-attendance-msg {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--bs-secondary);
+}
+.no-attendance-msg i {
+    font-size: 2rem;
+    opacity: 0.5;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+</style>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
         {% if records %}
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Student</th>
-                        <th>Subject</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in records %}
-                    <tr>
-                        <td>{{ record.date }}</td>
-                        <td>{{ record.student.user.full_name if record.student and record.student.user else 'N/A' }}</td>
-                        <td>{{ record.subject.name if record.subject else 'N/A' }}</td>
-                        <td><span class="badge badge-status-{{ record.status }}">{{ record.status | title }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="accordion accordion-flush" id="attendanceAccordion">
+            {% set grouped_records = records | selectattr('subject') | sort(attribute='subject.name') | groupby('subject.name') %}
+            {% for subject_name, subject_records in grouped_records %}
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="heading-{{ loop.index }}">
+                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ loop.index }}">
+                        <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                            <span class="fw-medium"><i class="bi bi-book me-2 text-primary"></i>{{ subject_name }}</span>
+                            <div>
+                                {% set total = subject_records|length %}
+                                {% set present = subject_records | selectattr('status', 'equalto', 'present') | list | length %}
+                                {% set percentage = (present / total * 100)|round(1) if total > 0 else 0 %}
+                                <span class="badge {% if percentage >= 75 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} border rounded-pill me-2">
+                                    {{ percentage }}% Attendance
+                                </span>
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill">{{ subject_records|length }} Records</span>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapse-{{ loop.index }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#attendanceAccordion">
+                    <div class="accordion-body p-0" style="background: var(--bg-card);">
+                        <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                            <span class="text-muted small fw-medium">Select a month to view calendar</span>
+                            <div style="width: 200px;">
+                                <select class="form-select form-select-sm month-filter" data-target="calendar-container-{{ loop.index }}" data-dataid="data-{{ loop.index }}" onchange="renderCalendar(this)">
+                                    <option value="" selected disabled>Select Month...</option>
+                                    <option value="01">January</option>
+                                    <option value="02">February</option>
+                                    <option value="03">March</option>
+                                    <option value="04">April</option>
+                                    <option value="05">May</option>
+                                    <option value="06">June</option>
+                                    <option value="07">July</option>
+                                    <option value="08">August</option>
+                                    <option value="09">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <script id="data-{{ loop.index }}" type="application/json">
+                        [
+                            {% for record in subject_records %}
+                            {
+                                "date": "{{ record.date.strftime('%Y-%m-%d') if record.date else '' }}",
+                                "status": "{{ record.status.value if record.status else 'present' }}",
+                                "remarks": "{{ record.remarks|replace('\"', '\\\"')|replace('\n', ' ') if record.remarks else '' }}"
+                            }{% if not loop.last %},{% endif %}
+                            {% endfor %}
+                        ]
+                        </script>
+
+                        <!-- No attendance message (shown/hidden by JS) -->
+                        <div id="no-att-{{ loop.index }}" class="no-attendance-msg" style="display: none;">
+                            <i class="bi bi-calendar-x"></i>
+                            No attendance available for this month.
+                        </div>
+
+                        <!-- Calendar grid (shown/hidden by JS) -->
+                        <div id="calendar-container-{{ loop.index }}" style="display: none; background: var(--bg-card);">
+                            <div class="calendar-grid">
+                                <div class="calendar-header-cell text-danger">Sun</div>
+                                <div class="calendar-header-cell">Mon</div>
+                                <div class="calendar-header-cell">Tue</div>
+                                <div class="calendar-header-cell">Wed</div>
+                                <div class="calendar-header-cell">Thu</div>
+                                <div class="calendar-header-cell">Fri</div>
+                                <div class="calendar-header-cell text-danger">Sat</div>
+                            </div>
+                            
+                            <!-- Legend -->
+                            <div class="d-flex justify-content-center flex-wrap gap-4 py-3 border-top small" style="background: var(--bg-card); color: var(--text-primary);">
+                                <div class="d-flex align-items-center"><span class="d-inline-block rounded-circle bg-success me-2" style="width:10px;height:10px;"></span>Present</div>
+                                <div class="d-flex align-items-center"><span class="d-inline-block rounded-circle bg-danger me-2" style="width:10px;height:10px;"></span>Absent</div>
+                                <div class="d-flex align-items-center"><span class="d-inline-block rounded-circle bg-warning me-2" style="width:10px;height:10px;"></span>Late</div>
+                                <div class="d-flex align-items-center"><span class="d-inline-block rounded-circle bg-info me-2" style="width:10px;height:10px;"></span>Excused</div>
+                                <div class="d-flex align-items-center"><span class="d-inline-block rounded-circle" style="width:10px;height:10px;background:var(--bs-secondary-bg);border:1px solid var(--bs-secondary);"></span>&nbsp;Weekend</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
         {% else %}
-        <div class="empty-state">
-            <i class="bi bi-calendar-x"></i>
-            <p>No attendance records found</p>
+        <div class="empty-state py-5 text-center">
+            <i class="bi bi-calendar-x fs-1 text-muted opacity-50 mb-3 d-block"></i>
+            <p class="text-muted">No attendance records found for you yet.</p>
         </div>
         {% endif %}
     </div>
 </div>
+
+<script>
+function renderCalendar(selectElem) {
+    const containerId = selectElem.getAttribute('data-target');
+    const dataId = selectElem.getAttribute('data-dataid');
+    const selectedMonthStr = selectElem.value;
+    const container = document.getElementById(containerId);
+    // Extract the index from containerId (e.g. "calendar-container-1" -> "1")
+    const idx = containerId.replace('calendar-container-', '');
+    const noAttMsg = document.getElementById('no-att-' + idx);
+    
+    if (!selectedMonthStr) {
+        container.style.display = 'none';
+        noAttMsg.style.display = 'none';
+        return;
+    }
+    
+    const records = JSON.parse(document.getElementById(dataId).textContent);
+    
+    // Filter records for selected month
+    const monthRecords = records.filter(r => {
+        if (!r.date) return false;
+        return r.date.substring(5, 7) === selectedMonthStr;
+    });
+
+    // If NO records for this month, show the "No attendance" message and hide calendar
+    if (monthRecords.length === 0) {
+        container.style.display = 'none';
+        noAttMsg.style.display = 'block';
+        return;
+    }
+
+    // Has records — show calendar, hide message
+    noAttMsg.style.display = 'none';
+    container.style.display = 'block';
+    
+    // Map dates to records for O(1) lookup
+    const recordMap = {};
+    monthRecords.forEach(r => {
+        recordMap[r.date] = r;
+    });
+
+    const grid = container.querySelector('.calendar-grid');
+    // Remove all old cells except headers (first 7 elements)
+    const children = Array.from(grid.children);
+    for (let i = 7; i < children.length; i++) {
+        grid.removeChild(children[i]);
+    }
+
+    const currentYear = new Date().getFullYear();
+    const monthIndex = parseInt(selectedMonthStr, 10) - 1;
+    
+    const firstDay = new Date(currentYear, monthIndex, 1).getDay();
+    const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();
+
+    // Empty filler cells
+    for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell empty';
+        grid.appendChild(emptyCell);
+    }
+
+    // Actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateObj = new Date(currentYear, monthIndex, day);
+        const dayOfWeek = dateObj.getDay();
+        
+        const mm = String(monthIndex + 1).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        const dateStr = `${currentYear}-${mm}-${dd}`;
+        
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.textContent = day;
+        
+        let isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+        if (isWeekend) {
+            cell.classList.add('weekend');
+        }
+
+        const record = recordMap[dateStr];
+        let tooltipText = '';
+
+        if (record) {
+            cell.classList.add(record.status.toLowerCase());
+            tooltipText = `Status: ${record.status.charAt(0).toUpperCase() + record.status.slice(1)}`;
+            if (record.remarks) {
+                tooltipText += ` | ${record.remarks}`;
+            }
+        } else {
+            tooltipText = isWeekend ? 'Weekend' : 'No Record';
+        }
+
+        if (tooltipText) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'calendar-tooltip';
+            tooltip.textContent = tooltipText;
+            cell.appendChild(tooltip);
+        }
+
+        grid.appendChild(cell);
+    }
+}
+</script>
+
+{% else %}
+{# ═══════════════════════════════════════════════════════════ #}
+{# ADMIN / TEACHER PROFESSIONAL GROUPED VIEW                   #}
+{# ═══════════════════════════════════════════════════════════ #}
+{% if records %}
+    {% set grouped_by_date = records | groupby('date') | sort(attribute='grouper', reverse=True) %}
+    {% for date_val, date_records in grouped_by_date %}
+        
+        {# Calculate overall date percentage #}
+        {% set d_total = date_records | length %}
+        {% set d_p_count = namespace(value=0) %}
+        {% for r in date_records %}
+            {% set st = r.status.value if r.status is defined and r.status is not string else r.status|string %}
+            {% if st == 'present' or st == 'late' or st == 'excused' %}
+                {% set d_p_count.value = d_p_count.value + 1 %}
+            {% endif %}
+        {% endfor %}
+        {% set d_percentage = (d_p_count.value / d_total * 100)|round if d_total > 0 else 0 %}
+        
+        <div class="card shadow-sm mb-5 border-0" style="background: var(--bg-card);">
+            <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center rounded-top" style="background: var(--bg-card);">
+                <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-calendar3 me-2"></i>{{ date_val.strftime('%d %B %Y') if date_val else 'Unknown Date' }}</h5>
+                <div class="text-end">
+                    <span class="fs-4 fw-bold me-3 text-primary">{{ d_percentage }}% Present</span>
+                    <span class="badge bg-primary-subtle text-primary rounded-pill py-2 px-3 fs-6">{{ d_total }} Records</span>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                
+                {# Group by Course #}
+                {% set grouped_by_course = date_records | groupby('subject.department.course.name') %}
+                
+                <ul class="nav nav-tabs mb-4" id="courseTabs-{{ date_val|string|replace('-', '') }}" role="tablist">
+                    {% for course_name, course_records in grouped_by_course %}
+                    {% set c_idx = loop.index %}
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link {% if loop.first %}active fw-bold{% else %}fw-medium text-secondary{% endif %} px-4 py-3" id="tab-{{ date_val|string|replace('-', '') }}-{{ c_idx }}" data-bs-toggle="tab" data-bs-target="#content-{{ date_val|string|replace('-', '') }}-{{ c_idx }}" type="button" role="tab">{{ course_name if course_name else 'Unknown Course' }}</button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <div class="tab-content" id="courseTabsContent-{{ date_val|string|replace('-', '') }}">
+                    {% for course_name, course_records in grouped_by_course %}
+                    {% set c_idx = loop.index %}
+                    <div class="tab-pane fade {% if loop.first %}show active{% endif %}" id="content-{{ date_val|string|replace('-', '') }}-{{ c_idx }}" role="tabpanel">
+                        
+                        {# Group by Department #}
+                        {% set grouped_by_dept = course_records | groupby('subject.department.name') %}
+                        <div class="accordion accordion-flush rounded shadow-sm border" id="accordion-dept-{{ date_val|string|replace('-', '') }}-{{ c_idx }}" style="background: var(--bg-card);">
+                            {% for dept_name, dept_records in grouped_by_dept %}
+                            {% set d_idx = loop.index %}
+                            <div class="accordion-item border-bottom">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button {% if not loop.first %}collapsed{% endif %} fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-dept-{{ date_val|string|replace('-', '') }}-{{ c_idx }}-{{ d_idx }}" style="background: transparent; color: var(--text-primary);">
+                                        <i class="bi bi-building me-3 text-primary"></i>{{ dept_name if dept_name else 'Unknown Department' }}
+                                        <span class="badge bg-secondary-subtle text-secondary ms-3 rounded-pill">{{ dept_records|length }} Records</span>
+                                    </button>
+                                </h2>
+                                <div id="collapse-dept-{{ date_val|string|replace('-', '') }}-{{ c_idx }}-{{ d_idx }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" data-bs-parent="#accordion-dept-{{ date_val|string|replace('-', '') }}-{{ c_idx }}">
+                                    <div class="accordion-body p-4 border-top">
+                                        
+                                        {# Group by Semester #}
+                                        {% set grouped_by_sem = dept_records | groupby('subject.semester') %}
+                                        {% for sem_num, sem_records in grouped_by_sem %}
+                                        {% set s_idx = loop.index %}
+                                        <h6 class="text-uppercase text-secondary fw-bold mb-4 mt-{% if not loop.first %}5{% else %}0{% endif %} pb-2 border-bottom" style="letter-spacing: 1px;">
+                                            Semester {{ sem_num if sem_num else 'Unknown' }}
+                                        </h6>
+                                        
+                                        <div class="row g-4 mb-4">
+                                            {# Group by Subject #}
+                                            {% set grouped_by_subject = sem_records | groupby('subject.name') %}
+                                            {% for subject_name, subject_records in grouped_by_subject %}
+                                            {% set subj_idx = loop.index %}
+                                                <div class="col-md-6 col-lg-4">
+                                                    <div class="card h-100 border shadow-sm" style="background: var(--bg-card); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--bs-box-shadow-sm)';" data-bs-toggle="modal" data-bs-target="#modal-{{ date_val|string|replace('-', '') }}-{{ c_idx }}-{{ d_idx }}-{{ s_idx }}-{{ subj_idx }}">
+                                                        <div class="card-body">
+                                                            <h6 class="card-title text-primary fw-bold text-truncate mb-4">
+                                                                <i class="bi bi-book me-2"></i>{{ subject_name if subject_name else 'Unknown Subject' }}
+                                                            </h6>
+                                                            
+                                                            {% set total = subject_records | length %}
+                                                            {% set p_count = namespace(value=0) %}
+                                                            {% for r in subject_records %}
+                                                                {% set st = r.status.value if r.status is defined and r.status is not string else r.status|string %}
+                                                                {% if st == 'present' or st == 'late' or st == 'excused' %}
+                                                                    {% set p_count.value = p_count.value + 1 %}
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                            {% set total_positive = p_count.value %}
+                                                            {% set percentage = (total_positive / total * 100)|round if total > 0 else 0 %}
+                                                            
+                                                            <div class="d-flex justify-content-between align-items-end mb-2">
+                                                                <div>
+                                                                    <div class="fs-2 fw-bold {% if percentage >= 75 %}text-success{% else %}text-danger{% endif %} lh-1">{{ percentage }}%</div>
+                                                                    <small class="text-muted fw-medium">{{ total_positive }} of {{ total }} Present</small>
+                                                                </div>
+                                                                <div class="text-end pb-1">
+                                                                    <span class="badge bg-secondary-subtle text-secondary rounded-pill py-2 px-3"><i class="bi bi-people-fill me-1"></i>{{ total }} Students</span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="progress mt-3" style="height: 8px; border-radius: 4px;">
+                                                                <div class="progress-bar {% if percentage >= 75 %}bg-success{% else %}bg-danger{% endif %}" role="progressbar" style="width: {{ percentage }}%"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Modal for details -->
+                                                <div class="modal fade" id="modal-{{ date_val|string|replace('-', '') }}-{{ c_idx }}-{{ d_idx }}-{{ s_idx }}-{{ subj_idx }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                                                        <div class="modal-content" style="background: var(--bg-card); border: none; box-shadow: 0 15px 35px rgba(0,0,0,0.2);">
+                                                            <div class="modal-header border-bottom">
+                                                                <h5 class="modal-title fw-bold">
+                                                                    <i class="bi bi-book text-primary me-2"></i>{{ subject_name if subject_name else 'Unknown Subject' }}
+                                                                    <span class="text-muted ms-3 fs-6 fw-normal bg-secondary-subtle px-2 py-1 rounded"><i class="bi bi-calendar3 me-1"></i>{{ date_val.strftime('%d %b %Y') if date_val else 'Unknown Date' }}</span>
+                                                                </h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body p-0">
+                                                                <div class="table-responsive m-0">
+                                                                    <table class="table table-hover align-middle mb-0" style="color: var(--text-primary);">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th class="ps-4">Student</th>
+                                                                                <th>Enrollment No.</th>
+                                                                                <th>Status</th>
+                                                                                <th>Remarks</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {% for record in subject_records | sort(attribute='student.user.full_name') %}
+                                                                            <tr>
+                                                                                <td class="ps-4 py-3">
+                                                                                    <div class="d-flex align-items-center gap-3">
+                                                                                        <div class="avatar bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; font-weight: 600;">
+                                                                                            {{ record.student.user.full_name[:2].upper() if record.student and record.student.user else 'S' }}
+                                                                                        </div>
+                                                                                        <span class="fw-medium">{{ record.student.user.full_name if record.student and record.student.user else 'Unknown' }}</span>
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td class="text-muted">{{ record.student.enrollment_number if record.student else '-' }}</td>
+                                                                                <td>
+                                                                                    {% set st = record.status.value if record.status is defined and record.status is not string else record.status|string %}
+                                                                                    <span class="badge badge-status-{{ st }} px-3 py-2 rounded-pill">{{ st | title }}</span>
+                                                                                </td>
+                                                                                <td class="text-muted small">{{ record.remarks or '-' }}</td>
+                                                                            </tr>
+                                                                            {% endfor %}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-5 text-center">
+            <i class="bi bi-calendar-x fs-1 text-muted opacity-25 mb-3 d-block" style="font-size: 4rem !important;"></i>
+            <h4 class="text-muted fw-bold">No Attendance Records</h4>
+            <p class="text-muted mb-0">No attendance data has been recorded yet.</p>
+        </div>
+    </div>
+{% endif %}
+{% endif %}
+
 {% endblock %}

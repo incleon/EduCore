@@ -8,6 +8,7 @@ model-specific query methods.
 """
 
 from typing import Optional, List
+from datetime import date
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 
@@ -23,7 +24,7 @@ from app.models.marks import Marks
 from app.models.fee import Fee
 from app.models.library import LibraryBook, BookIssue
 from app.models.audit_log import AuditLog
-from app.models.timetable import Timetable
+from app.models.timetable_grid import TimetableVersion, TimetableSlot
 from app.models.notification import Notification
 
 
@@ -151,6 +152,14 @@ class StudentRepository(BaseRepository[Student]):
             .all()
         )
 
+    def get_by_department_and_semester(self, department_id: int, semester: int) -> List[Student]:
+        return (
+            self._db.query(Student)
+            .options(joinedload(Student.user))
+            .filter(Student.department_id == department_id, Student.semester == semester, Student.is_deleted == False)
+            .all()
+        )
+
     def get_by_id(self, id: int, include_deleted: bool = False) -> Optional[Student]:
         """OVERRIDE: Eager load user and department."""
         query = (
@@ -161,6 +170,23 @@ class StudentRepository(BaseRepository[Student]):
         if not include_deleted:
             query = query.filter(Student.is_deleted == False)
         return query.first()
+
+    def get_filtered_students(self, course_id: int = None, department_id: int = None) -> List[Student]:
+        from app.models.department import Department
+        
+        query = (
+            self._db.query(Student)
+            .join(Department, Student.department_id == Department.id)
+            .options(joinedload(Student.user), joinedload(Student.department))
+            .filter(Student.is_deleted == False)
+        )
+        
+        if course_id:
+            query = query.filter(Department.course_id == course_id)
+        if department_id:
+            query = query.filter(Student.department_id == department_id)
+            
+        return query.order_by(Student.id.desc()).all()
 
 
 # ══════════════════════════════════════════════════════════════
@@ -204,6 +230,23 @@ class TeacherRepository(BaseRepository[Teacher]):
         if not include_deleted:
             query = query.filter(Teacher.is_deleted == False)
         return query.first()
+
+    def get_filtered_teachers(self, course_id: int = None, department_id: int = None) -> List[Teacher]:
+        from app.models.department import Department
+        
+        query = (
+            self._db.query(Teacher)
+            .join(Department, Teacher.department_id == Department.id)
+            .options(joinedload(Teacher.user), joinedload(Teacher.department))
+            .filter(Teacher.is_deleted == False)
+        )
+        
+        if course_id:
+            query = query.filter(Department.course_id == course_id)
+        if department_id:
+            query = query.filter(Teacher.department_id == department_id)
+            
+        return query.order_by(Teacher.id.desc()).all()
 
 
 # ══════════════════════════════════════════════════════════════
@@ -254,13 +297,15 @@ class SubjectRepository(BaseRepository[Subject]):
             .first()
         )
 
-    def get_by_department(self, department_id: int) -> List[Subject]:
-        return (
+    def get_by_department(self, department_id: int, semester: int = None) -> List[Subject]:
+        query = (
             self._db.query(Subject)
             .options(joinedload(Subject.department), joinedload(Subject.teacher))
             .filter(Subject.department_id == department_id, Subject.is_deleted == False)
-            .all()
         )
+        if semester:
+            query = query.filter(Subject.semester == semester)
+        return query.all()
 
     def assign_teacher(self, subject_id: int, teacher_id: int, section: str = None) -> SubjectTeacher:
         st = SubjectTeacher(subject_id=subject_id, teacher_id=teacher_id, section=section)
@@ -269,10 +314,20 @@ class SubjectRepository(BaseRepository[Subject]):
         return st
 
     def get_teacher_subjects(self, teacher_id: int) -> List[Subject]:
+        from sqlalchemy import or_
+        from app.models.subject import SubjectTeacher
+        
         return (
             self._db.query(Subject)
+            .outerjoin(SubjectTeacher, Subject.id == SubjectTeacher.subject_id)
             .options(joinedload(Subject.department), joinedload(Subject.teacher))
-            .filter(Subject.teacher_id == teacher_id, Subject.is_deleted == False)
+            .filter(
+                or_(
+                    Subject.teacher_id == teacher_id,
+                    SubjectTeacher.teacher_id == teacher_id
+                ),
+                Subject.is_deleted == False
+            )
             .all()
         )
 
@@ -296,6 +351,71 @@ class AttendanceRepository(BaseRepository[Attendance]):
                 Attendance.is_deleted == False,
             )
             .order_by(Attendance.date.desc())
+            .all()
+        )
+
+    def get_by_student_subject_date(self, student_id: int, subject_id: int, dt: date) -> Optional[Attendance]:
+        return (
+            self._db.query(Attendance)
+            .filter(
+                Attendance.student_id == student_id,
+                Attendance.subject_id == subject_id,
+                Attendance.date == dt,
+                Attendance.is_deleted == False
+            )
+            .first()
+        )
+
+    def get_all_with_relations(self, limit: int = 200) -> List[Attendance]:
+        """Admin view: get all attendance records with student and subject eager-loaded."""
+        from app.models.student import Student
+        from app.models.subject import Subject
+        from app.models.department import Department
+        return (
+            self._db.query(Attendance)
+            .options(
+                joinedload(Attendance.subject).joinedload(Subject.department).joinedload(Department.course),
+                joinedload(Attendance.student).joinedload(Student.user),
+            )
+            .filter(Attendance.is_deleted == False)
+            .order_by(Attendance.date.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_student_records(self, student_id: int) -> List[Attendance]:
+        from app.models.teacher import Teacher
+        return (
+            self._db.query(Attendance)
+            .options(joinedload(Attendance.subject), joinedload(Attendance.teacher).joinedload(Teacher.user))
+            .filter(Attendance.student_id == student_id, Attendance.is_deleted == False)
+            .order_by(Attendance.date.desc())
+            .all()
+        )
+
+    def get_teacher_records(self, teacher_id: int, limit: int = 1000) -> List[Attendance]:
+        from app.models.subject import Subject, SubjectTeacher
+        from sqlalchemy import or_
+        from app.models.student import Student
+        from app.models.department import Department
+        return (
+            self._db.query(Attendance)
+            .options(
+                joinedload(Attendance.subject).joinedload(Subject.department).joinedload(Department.course), 
+                joinedload(Attendance.student).joinedload(Student.user)
+            )
+            .join(Subject, Attendance.subject_id == Subject.id)
+            .outerjoin(SubjectTeacher, Subject.id == SubjectTeacher.subject_id)
+            .filter(
+                or_(
+                    Subject.teacher_id == teacher_id,
+                    SubjectTeacher.teacher_id == teacher_id,
+                    Attendance.teacher_id == teacher_id
+                ),
+                Attendance.is_deleted == False
+            )
+            .order_by(Attendance.date.desc())
+            .limit(limit)
             .all()
         )
 
@@ -347,6 +467,86 @@ class MarksRepository(BaseRepository[Marks]):
             query = query.filter(Marks.exam_type == exam_type)
         return query.all()
 
+    def get_all_with_relations(self, limit: int = 1000) -> List[Marks]:
+        """Admin view: get marks with deep relationships eager-loaded."""
+        from app.models.student import Student
+        from app.models.subject import Subject
+        from app.models.department import Department
+        return (
+            self._db.query(Marks)
+            .options(
+                joinedload(Marks.subject).joinedload(Subject.department).joinedload(Department.course),
+                joinedload(Marks.student).joinedload(Student.user),
+            )
+            .filter(Marks.is_deleted == False)
+            .order_by(Marks.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_filtered_marks(self, course_id: int = None, department_id: int = None, semester: int = None, search: str = None) -> List[Marks]:
+        from app.models.student import Student
+        from app.models.subject import Subject
+        from app.models.department import Department
+        from app.models.user import User
+        from sqlalchemy import or_
+        
+        query = (
+            self._db.query(Marks)
+            .join(Student, Marks.student_id == Student.id)
+            .join(User, Student.user_id == User.id)
+            .join(Subject, Marks.subject_id == Subject.id)
+            .join(Department, Subject.department_id == Department.id)
+            .options(
+                joinedload(Marks.subject).joinedload(Subject.department).joinedload(Department.course),
+                joinedload(Marks.student).joinedload(Student.user),
+            )
+            .filter(Marks.is_deleted == False)
+        )
+        
+        if course_id:
+            query = query.filter(Department.course_id == course_id)
+        if department_id:
+            # We filter by subject's department to get marks for subjects belonging to that dept
+            query = query.filter(Subject.department_id == department_id)
+        if semester:
+            query = query.filter(Marks.semester == semester)
+        if search:
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(f"%{search}%"),
+                    Student.enrollment_number.ilike(f"%{search}%")
+                )
+            )
+            
+        return query.order_by(Marks.created_at.desc()).all()
+
+    def get_teacher_records_with_relations(self, teacher_id: int, limit: int = 1000) -> List[Marks]:
+        """Teacher view: get marks for subjects assigned to them."""
+        from app.models.student import Student
+        from app.models.subject import Subject, SubjectTeacher
+        from app.models.department import Department
+        from sqlalchemy import or_
+        return (
+            self._db.query(Marks)
+            .options(
+                joinedload(Marks.subject).joinedload(Subject.department).joinedload(Department.course),
+                joinedload(Marks.student).joinedload(Student.user),
+            )
+            .join(Subject, Marks.subject_id == Subject.id)
+            .outerjoin(SubjectTeacher, Subject.id == SubjectTeacher.subject_id)
+            .filter(
+                or_(
+                    Subject.teacher_id == teacher_id,
+                    SubjectTeacher.teacher_id == teacher_id
+                ),
+                Marks.is_deleted == False
+            )
+            .order_by(Marks.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
 
 # ══════════════════════════════════════════════════════════════
 # FEE REPOSITORY
@@ -363,6 +563,37 @@ class FeeRepository(BaseRepository[Fee]):
             .order_by(Fee.created_at.desc())
             .all()
         )
+
+    def get_filtered_fees(self, course_id: int = None, department_id: int = None, semester: int = None, search: str = None) -> List[Fee]:
+        from app.models.student import Student
+        from app.models.department import Department
+        from app.models.user import User
+        from sqlalchemy import or_
+        
+        query = (
+            self._db.query(Fee)
+            .join(Student, Fee.student_id == Student.id)
+            .join(User, Student.user_id == User.id)
+            .join(Department, Student.department_id == Department.id)
+            .options(joinedload(Fee.student).joinedload(Student.user))
+            .filter(Fee.is_deleted == False)
+        )
+        
+        if course_id:
+            query = query.filter(Department.course_id == course_id)
+        if department_id:
+            query = query.filter(Student.department_id == department_id)
+        if semester:
+            query = query.filter(Fee.semester == semester)
+        if search:
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(f"%{search}%"),
+                    Student.enrollment_number.ilike(f"%{search}%")
+                )
+            )
+            
+        return query.order_by(Fee.created_at.desc()).all()
 
     def get_pending_fees(self) -> List[Fee]:
         return (
@@ -470,18 +701,42 @@ class AuditLogRepository(BaseRepository[AuditLog]):
 # TIMETABLE REPOSITORY
 # ══════════════════════════════════════════════════════════════
 
-class TimetableRepository(BaseRepository[Timetable]):
+class TimetableVersionRepository(BaseRepository[TimetableVersion]):
     def __init__(self, db: Session):
-        super().__init__(Timetable, db)
+        super().__init__(TimetableVersion, db)
 
-    def get_by_student(self, semester: int, section: str = None) -> List[Timetable]:
-        query = self._db.query(Timetable).filter(Timetable.semester == semester)
-        if section:
-            query = query.filter(Timetable.section == section)
-        return query.all()
+    def get_by_department_semester(self, department_id: int, semester: int) -> Optional[TimetableVersion]:
+        return self._db.query(TimetableVersion).filter(
+            TimetableVersion.department_id == department_id,
+            TimetableVersion.semester == semester,
+            TimetableVersion.is_deleted == False
+        ).first()
 
-    def get_by_teacher(self, teacher_id: int) -> List[Timetable]:
-        return self._db.query(Timetable).filter(Timetable.teacher_id == teacher_id).all()
+    def get_pending(self) -> List[TimetableVersion]:
+        return self._db.query(TimetableVersion).filter(
+            TimetableVersion.status == "pending",
+            TimetableVersion.is_deleted == False
+        ).order_by(TimetableVersion.updated_at.desc()).all()
+        
+    def get_approved(self) -> List[TimetableVersion]:
+        return self._db.query(TimetableVersion).filter(
+            TimetableVersion.status == "approved",
+            TimetableVersion.is_deleted == False
+        ).order_by(TimetableVersion.updated_at.desc()).all()
+
+
+class TimetableSlotRepository(BaseRepository[TimetableSlot]):
+    def __init__(self, db: Session):
+        super().__init__(TimetableSlot, db)
+
+    def get_by_version(self, version_id: int) -> List[TimetableSlot]:
+        return self._db.query(TimetableSlot).options(
+            joinedload(TimetableSlot.subject),
+            joinedload(TimetableSlot.teacher)
+        ).filter(
+            TimetableSlot.version_id == version_id,
+            TimetableSlot.is_deleted == False
+        ).all()
 
 
 # ══════════════════════════════════════════════════════════════

@@ -2,578 +2,235 @@
 {% block title %}Subjects{% endblock %}
 {% block page_title %}Subject Management{% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── Department Grid ─────────────────────────────────────── */
-.dept-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.dept-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 28px 24px;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.dept-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.dept-card:hover {
-    transform: translateY(-6px);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-lg);
-}
-
-.dept-card:hover::before {
-    opacity: 1;
-}
-
-/* Gradient variations per card position */
-.dept-card:nth-child(6n+1)::before { background: var(--gradient-primary); }
-.dept-card:nth-child(6n+2)::before { background: var(--gradient-success); }
-.dept-card:nth-child(6n+3)::before { background: var(--gradient-warning); }
-.dept-card:nth-child(6n+4)::before { background: var(--gradient-danger); }
-.dept-card:nth-child(6n+5)::before { background: var(--gradient-info); }
-.dept-card:nth-child(6n+6)::before { background: var(--gradient-dark); }
-
-.dept-card:nth-child(6n+1) .dept-icon { background: rgba(99, 102, 241, 0.12); color: var(--accent-primary-light); }
-.dept-card:nth-child(6n+2) .dept-icon { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); }
-.dept-card:nth-child(6n+3) .dept-icon { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
-.dept-card:nth-child(6n+4) .dept-icon { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
-.dept-card:nth-child(6n+5) .dept-icon { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); }
-.dept-card:nth-child(6n+6) .dept-icon { background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); }
-
-.dept-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    transition: var(--transition);
-}
-
-.dept-card:hover .dept-icon {
-    transform: scale(1.08);
-}
-
-.dept-card-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.dept-card-info h5 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    letter-spacing: -0.01em;
-}
-
-.dept-card-info p {
-    margin: 3px 0 0;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.dept-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
-}
-
-.dept-subject-count {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.dept-subject-count .count-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-}
-
-.dept-card-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    transition: var(--transition);
-}
-
-.dept-card:hover .dept-card-arrow {
-    background: rgba(99, 102, 241, 0.15);
-    color: var(--accent-primary-light);
-    transform: translateX(3px);
-}
-
-/* ── Subject Detail Panel ─────────────────────────────────── */
-#subjectDetailPanel {
-    animation: fadeInUp 0.35s ease-out;
-}
-
-.back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
-}
-
-.back-btn:hover {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.3);
-    color: var(--accent-primary-light);
-}
-
-.back-btn i {
-    font-size: 1rem;
-    transition: transform 0.2s ease;
-}
-
-.back-btn:hover i {
-    transform: translateX(-3px);
-}
-
-.dept-detail-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    margin-bottom: 20px;
-}
-
-.dept-detail-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-    flex-shrink: 0;
-}
-
-.dept-detail-info h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.dept-detail-info p {
-    margin: 2px 0 0;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* ── Smooth transitions for view switching ───────────────── */
-.view-container {
-    transition: opacity 0.2s ease;
-}
-
-.view-container.hiding {
-    opacity: 0;
-}
-
-/* ── Empty department state ──────────────────────────────── */
-.empty-dept-state {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--text-muted);
-}
-
-.empty-dept-state i {
-    font-size: 3rem;
-    margin-bottom: 16px;
-    opacity: 0.3;
-    display: block;
-}
-
-.empty-dept-state p {
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-/* ── Teacher loading state ───────────────────────────────── */
-#subjectTeacher .teacher-loading {
-    color: var(--text-muted);
-    font-style: italic;
-    font-size: 0.85rem;
-}
-
-@media (max-width: 576px) {
-    .dept-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-{% endblock %}
-
 {% block content %}
-<!-- ═══ DEPARTMENT GRID VIEW (Default) ═══ -->
-<div id="deptGridView" class="view-container">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <p class="text-muted mb-0" style="font-size:0.85rem;">
-                <i class="bi bi-building me-1"></i>Select a department to view its subjects
-            </p>
-        </div>
+<div class="page-header">
+    <div>
+        <h1 class="page-heading">Subjects</h1>
+        <p class="page-subheading">Manage curriculum subjects</p>
+    </div>
+    <div class="page-actions">
         {% if 'manage_subjects' in permissions %}
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal" id="addSubjectBtn">
-            <i class="bi bi-plus-lg me-2"></i>Add Subject
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="offcanvas" data-bs-target="#addSubjectOffcanvas">
+            <i class="bi bi-plus me-1"></i> Add Subject
         </button>
         {% endif %}
     </div>
-
-    <!-- Department Cards Grid -->
-    {% if departments | length > 0 %}
-    <div class="dept-grid">
-        {% for dept in departments %}
-        {% set ns = namespace(count=0) %}
-        {% for subject in items %}
-            {% if subject.department_id == dept.id %}
-                {% set ns.count = ns.count + 1 %}
-            {% endif %}
-        {% endfor %}
-        <div class="dept-card" onclick="showDeptSubjects({{ dept.id }}, '{{ dept.name }}', '{{ dept.code }}')" id="deptCard-{{ dept.id }}">
-            <div class="dept-card-header">
-                <div class="dept-icon">
-                    <i class="bi bi-building"></i>
-                </div>
-                <div class="dept-card-info">
-                    <h5>{{ dept.name }}</h5>
-                    <p><code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">{{ dept.code }}</code></p>
-                </div>
-            </div>
-            <div class="dept-card-footer">
-                <div class="dept-subject-count">
-                    <div class="count-badge">{{ ns.count }}</div>
-                    <span>Subject{{ 's' if ns.count != 1 }} offered</span>
-                </div>
-                <div class="dept-card-arrow">
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-dept-state">
-        <i class="bi bi-building"></i>
-        <p>No departments found. Create departments first to organize subjects.</p>
-    </div>
-    {% endif %}
 </div>
 
-<!-- ═══ SUBJECT LIST VIEW (Shown on department click) ═══ -->
-<div id="subjectDetailPanel" class="view-container" style="display:none;">
-    <!-- Back Button + Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <button class="back-btn" onclick="showDeptGrid()" id="backToDepts">
-            <i class="bi bi-arrow-left"></i>
-            <span>All Departments</span>
-        </button>
-        {% if 'manage_subjects' in permissions %}
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubjectModal" id="addSubjectBtnDetail">
-            <i class="bi bi-plus-lg me-2"></i>Add Subject
-        </button>
-        {% endif %}
-    </div>
-
-    <!-- Selected Department Header -->
-    <div class="dept-detail-header" id="deptDetailHeader">
-        <div class="dept-detail-icon">
-            <i class="bi bi-building"></i>
-        </div>
-        <div class="dept-detail-info">
-            <h4 id="selectedDeptName">Department Name</h4>
-            <p id="selectedDeptMeta">Loading subjects...</p>
-        </div>
-    </div>
-
-    <!-- Subject Table (All subjects, filtered by JS per department) -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Code</th><th>Name</th>
-                            <th>Credits</th><th>Semester</th><th>Assigned Teacher</th>
-                            <th>Description</th>
-                            {% if 'manage_subjects' in permissions %}<th>Actions</th>{% endif %}
-                        </tr>
-                    </thead>
-                    <tbody id="subjectTableBody">
-                    <!-- Populated dynamically by JS -->
-                    </tbody>
-                </table>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3"><i class="bi bi-funnel me-2"></i>Filter Subjects</h5>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label fw-medium">Select Course</label>
+                <select class="form-select" id="filterCourse" onchange="handleCourseChange()">
+                    <option value="">-- Select Course --</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}">{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-medium">Select Department</label>
+                <select class="form-select" id="filterDepartment" onchange="handleDepartmentChange()" disabled>
+                    <option value="">-- Select Department --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" data-course-id="{{ dept.course_id }}" style="display:none;">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
         </div>
     </div>
 </div>
 
+<div class="card shadow-sm" id="subjectsTableCard" style="display: none;">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Department & Course</th>
+                        <th>Credits</th>
+                        <th>Semester</th>
+                        <th>Teacher</th>
+                        {% if 'manage_subjects' in permissions %}<th>Actions</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for subject in items %}
+                <tr class="subject-row" data-dept-id="{{ subject.department_id }}" data-course-id="{{ subject.department.course_id if subject.department else '' }}">
+                    <td><code>{{ subject.code }}</code></td>
+                    <td class="fw-medium">{{ subject.name }}</td>
+                    <td>
+                        {% if subject.department %}
+                        <div class="d-flex flex-column gap-1 align-items-start">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">{{ subject.department.code }}</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.7rem;">{{ subject.department.course.code if subject.department.course else '' }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-info-subtle text-info">{{ subject.credits }} Cr</span></td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary fw-medium">Sem {{ subject.semester }}</span>
+                    </td>
+                    <td>
+                        {% if subject.teacher %}
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="small fw-medium">{{ subject.teacher.user.full_name if subject.teacher.user else 'Unknown' }}</span>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small"><i class="bi bi-dash-circle me-1"></i>Unassigned</span>
+                        {% endif %}
+                    </td>
+                    {% if 'manage_subjects' in permissions %}
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openAssignTeacherModal({{ subject.id }}, '{{ subject.name }}', '{{ subject.code }}')" title="Assign Sections"><i class="bi bi-person-plus"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('subjects', {{ subject.id }})" title="Delete Subject"><i class="bi bi-trash"></i></button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-book-half fs-1 d-block mb-3 opacity-50"></i>No subjects found.</td></tr>
+                {% endfor %}
+                <tr id="noSubjectsRow" style="display: none;"><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-search fs-1 d-block mb-3 opacity-50"></i>No subjects found for this selection.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-<!-- ═══ ADD SUBJECT MODAL ═══ -->
 {% if 'manage_subjects' in permissions %}
-<div class="modal fade" id="addSubjectModal" tabindex="-1" aria-labelledby="addSubjectModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border: 1px solid var(--border-primary); background: var(--bg-card);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--border-primary);">
-                <h5 class="modal-title" id="addSubjectModalLabel">
-                    <i class="bi bi-journal-plus me-2" style="color:var(--accent-primary-light);"></i>Add New Subject
-                </h5>
+<!-- Offcanvas Drawer for Add Subject -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="addSubjectOffcanvas" aria-labelledby="addSubjectOffcanvasLabel" style="background: var(--bg-card); border-left: 1px solid var(--border-color); width: 400px;">
+    <div class="offcanvas-header border-bottom border-secondary-subtle">
+        <h5 class="offcanvas-title" id="addSubjectOffcanvasLabel"><i class="bi bi-book-half me-2 text-primary"></i>New Subject</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <form id="addSubjectForm" onsubmit="handleAddSubject(event)">
+            <div class="mb-3">
+                <label class="form-label">Course <span class="text-danger">*</span></label>
+                <select class="form-select" id="addSubjectCourse" onchange="handleAddSubjectCourseChange()" required>
+                    <option value="">Select Course</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}">{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Department <span class="text-danger">*</span></label>
+                <select class="form-select" name="department_id" id="addSubjectDepartment" onchange="handleAddSubjectDeptChange()" required disabled>
+                    <option value="">Select Department</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" data-course-id="{{ dept.course_id }}" style="display:none;">{{ dept.name }} ({{ dept.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Subject Name <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="name" placeholder="e.g. Data Structures" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Subject Code <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="code" placeholder="e.g. CS201" required maxlength="20">
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="form-label">Credits <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" name="credits" placeholder="e.g. 4" required min="1" max="10">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Semester <span class="text-danger">*</span></label>
+                    <select class="form-select" name="semester" required>
+                        <option value="">Select Semester</option>
+                        {% for i in range(1, 9) %}
+                        <option value="{{ i }}">Semester {{ i }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Assign Primary Teacher</label>
+                <select class="form-select" name="teacher_id" id="addSubjectTeacher" disabled>
+                    <option value="">No Teacher Assigned</option>
+                    {% for teacher in teachers %}
+                    <option value="{{ teacher.id }}" data-dept-id="{{ teacher.department_id }}" style="display:none;">{{ teacher.user.full_name if teacher.user else 'Unknown' }} ({{ teacher.employee_id }})</option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">You can assign a teacher now or later.</div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label">Description</label>
+                <textarea class="form-control" name="description" rows="3" placeholder="Brief description (optional)"></textarea>
+            </div>
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg" id="saveSubjectBtn">
+                    <i class="bi bi-check-lg me-1"></i>Save Subject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for Assigning Sections -->
+<div class="modal fade" id="assignTeacherModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: var(--bg-card);">
+            <div class="modal-header border-bottom border-secondary-subtle">
+                <h5 class="modal-title"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Assign Teacher to Section</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="addSubjectForm" onsubmit="handleAddSubject(event)">
-                <div class="modal-body">
+            <div class="modal-body">
+                <form id="assignTeacherForm" onsubmit="handleAssignTeacher(event)">
+                    <input type="hidden" name="subject_id" id="assignSubjectId">
                     <div class="mb-3">
-                        <label for="subjectName" class="form-label">Subject Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="subjectName" name="name"
-                               placeholder="e.g. Data Structures" required>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label for="subjectCode" class="form-label">Subject Code <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="subjectCode" name="code"
-                                   placeholder="e.g. CS201" required maxlength="20">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="subjectDept" class="form-label">Department <span class="text-danger">*</span></label>
-                            <select class="form-select" id="subjectDept" name="department_id" required>
-                                <option value="">Select department</option>
-                                {% for dept in departments %}
-                                <option value="{{ dept.id }}">{{ dept.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label for="subjectCredits" class="form-label">Credits <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="subjectCredits" name="credits"
-                                   placeholder="e.g. 3" min="1" max="10" value="3" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="subjectSemester" class="form-label">Semester <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="subjectSemester" name="semester"
-                                   placeholder="e.g. 3" min="1" max="12" required>
-                        </div>
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="assignSubjectName" readonly disabled>
                     </div>
                     <div class="mb-3">
-                        <label for="subjectTeacher" class="form-label">Assigned Teacher</label>
-                        <select class="form-select" id="subjectTeacher" name="teacher_id" disabled>
-                            <option value="">Select department first</option>
+                        <label class="form-label">Teacher <span class="text-danger">*</span></label>
+                        <select class="form-select" name="teacher_id" required>
+                            <option value="">Select Teacher</option>
+                            {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}">{{ teacher.user.full_name if teacher.user else 'Unknown' }} ({{ teacher.employee_id }})</option>
+                            {% endfor %}
                         </select>
-                        <div class="form-text text-muted" id="teacherHelpText" style="font-size:0.75rem;">
-                            Choose a department to load its teachers
-                        </div>
                     </div>
-                    <div class="mb-0">
-                        <label for="subjectDesc" class="form-label">Description</label>
-                        <textarea class="form-control" id="subjectDesc" name="description" rows="2"
-                                  placeholder="Brief description of this subject (optional)"></textarea>
+                    <div class="mb-3">
+                        <label class="form-label">Section <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="section" placeholder="e.g. A" required maxlength="10">
                     </div>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--border-primary);">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveSubjectBtn">
-                        <span class="spinner-border spinner-border-sm d-none me-1" id="subjectSpinner"></span>
-                        <i class="bi bi-check-lg me-1"></i>Save Subject
-                    </button>
-                </div>
-            </form>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary" id="assignTeacherBtn">Assign</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
-{% endif %}
-{% endblock %}
 
-{% block extra_js %}
 <script>
-// ── Subject data from server (embedded as JSON for client-side filtering) ──
-const allSubjects = [
-    {% for subject in items %}
-    {
-        id: {{ subject.id }},
-        name: "{{ subject.name | e }}",
-        code: "{{ subject.code | e }}",
-        department_id: {{ subject.department_id }},
-        department_name: "{{ subject.department.name | e if subject.department else 'N/A' }}",
-        credits: {{ subject.credits if subject.credits else 3 }},
-        semester: {{ subject.semester if subject.semester else 'null' }},
-        teacher_id: {{ subject.teacher_id if subject.teacher_id else 'null' }},
-        teacher_name: "{{ subject.teacher.user.full_name | e if subject.teacher and subject.teacher.user else '' }}",
-        description: "{{ (subject.description or '') | e }}",
-    },
-    {% endfor %}
-];
-
-const canManage = {{ 'true' if 'manage_subjects' in permissions else 'false' }};
-
-let currentDeptId = null;
-
-// ── Show subjects for a specific department ──
-function showDeptSubjects(deptId, deptName, deptCode) {
-    currentDeptId = deptId;
-
-    // Filter subjects for this department
-    const deptSubjects = allSubjects.filter(s => s.department_id === deptId);
-
-    // Update header
-    document.getElementById('selectedDeptName').textContent = deptName;
-    document.getElementById('selectedDeptMeta').innerHTML =
-        '<code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">' + deptCode + '</code>' +
-        ' &nbsp;·&nbsp; ' + deptSubjects.length + ' subject' + (deptSubjects.length !== 1 ? 's' : '') + ' offered';
-
-    // Build table rows
-    const tbody = document.getElementById('subjectTableBody');
-    if (deptSubjects.length === 0) {
-        const colCount = canManage ? 7 : 6;
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="${colCount}" class="text-center text-muted py-5">
-                    <i class="bi bi-journal-x" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>
-                    No subjects in this department yet. Click "Add Subject" to get started.
-                </td>
-            </tr>`;
-    } else {
-        tbody.innerHTML = deptSubjects.map(subject => `
-            <tr style="animation: fadeInUp 0.3s ease-out;">
-                <td><code>${subject.code}</code></td>
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <div style="width:32px;height:32px;border-radius:8px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">
-                            ${subject.name[0].toUpperCase()}
-                        </div>
-                        ${subject.name}
-                    </div>
-                </td>
-                <td>${subject.credits}</td>
-                <td>${subject.semester !== null ? subject.semester : '—'}</td>
-                <td>${subject.teacher_name || '<span class="text-muted">—</span>'}</td>
-                <td><span class="text-muted" style="font-size:0.82rem;">${subject.description || '—'}</span></td>
-                ${canManage ? `
-                <td>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('subjects', ${subject.id})" title="Delete subject">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>` : ''}
-            </tr>
-        `).join('');
-    }
-
-    // Pre-select department in Add modal
-    const deptSelect = document.getElementById('subjectDept');
-    if (deptSelect) {
-        deptSelect.value = deptId;
-        // Trigger change to load teachers for this department
-        deptSelect.dispatchEvent(new Event('change'));
-    }
-
-    // Smooth transition: hide grid, show detail
-    const gridView = document.getElementById('deptGridView');
-    const detailPanel = document.getElementById('subjectDetailPanel');
-
-    gridView.classList.add('hiding');
-    setTimeout(() => {
-        gridView.style.display = 'none';
-        gridView.classList.remove('hiding');
-        detailPanel.style.display = 'block';
-    }, 200);
-}
-
-// ── Back to department grid ──
-function showDeptGrid() {
-    currentDeptId = null;
-
-    const gridView = document.getElementById('deptGridView');
-    const detailPanel = document.getElementById('subjectDetailPanel');
-
-    detailPanel.classList.add('hiding');
-    setTimeout(() => {
-        detailPanel.style.display = 'none';
-        detailPanel.classList.remove('hiding');
-        gridView.style.display = 'block';
-    }, 200);
-}
-
-// ── Add Subject Handler ──
 async function handleAddSubject(e) {
     e.preventDefault();
     const btn = document.getElementById('saveSubjectBtn');
-    const spinner = document.getElementById('subjectSpinner');
-
     btn.disabled = true;
-    spinner.classList.remove('d-none');
 
     const form = e.target;
     const data = {
         name: form.name.value.trim(),
         code: form.code.value.trim().toUpperCase(),
-        department_id: parseInt(form.department_id.value),
-        credits: parseInt(form.credits.value),
-        semester: parseInt(form.semester.value),
+        department_id: parseInt(form.department_id.value, 10),
+        credits: parseInt(form.credits.value, 10),
+        semester: parseInt(form.semester.value, 10),
         description: form.description.value.trim() || null,
     };
-
-    // Only include teacher_id if selected
-    const teacherVal = form.teacher_id.value;
-    if (teacherVal) {
-        data.teacher_id = parseInt(teacherVal);
+    if (form.teacher_id && form.teacher_id.value) {
+        data.teacher_id = parseInt(form.teacher_id.value, 10);
     }
 
     try {
@@ -584,73 +241,158 @@ async function handleAddSubject(e) {
         });
 
         if (res.ok) {
-            // Close modal and reload
-            bootstrap.Modal.getInstance(document.getElementById('addSubjectModal')).hide();
-            showFlash('Subject created successfully!', 'success');
-            setTimeout(() => window.location.reload(), 600);
+            window.location.reload();
         } else {
             const err = await res.json();
-            showFlash(err.detail || 'Failed to create subject', 'danger');
+            alert(err.detail || 'Failed to create subject');
+            btn.disabled = false;
         }
     } catch (err) {
-        showFlash('Connection error. Please try again.', 'danger');
-    } finally {
+        alert('Connection error. Please try again.');
         btn.disabled = false;
-        spinner.classList.add('d-none');
+    }
+}
+</script>
+{% endif %}
+
+<script>
+function handleCourseChange() {
+    const courseId = document.getElementById('filterCourse').value;
+    const deptSelect = document.getElementById('filterDepartment');
+    const tableCard = document.getElementById('subjectsTableCard');
+    
+    // Reset department selection
+    deptSelect.value = "";
+    tableCard.style.display = 'none';
+    
+    if (courseId) {
+        deptSelect.disabled = false;
+        // Show only departments belonging to this course
+        Array.from(deptSelect.options).forEach(opt => {
+            if (opt.value === "") {
+                opt.style.display = '';
+            } else if (opt.dataset.courseId === courseId) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    } else {
+        deptSelect.disabled = true;
     }
 }
 
-// ── Load teachers when department changes ──
-document.addEventListener('DOMContentLoaded', function() {
-    const deptSelect = document.getElementById('subjectDept');
-    const teacherSelect = document.getElementById('subjectTeacher');
-    const helpText = document.getElementById('teacherHelpText');
-
-    if (deptSelect && teacherSelect) {
-        deptSelect.addEventListener('change', async function() {
-            const deptId = this.value;
-
-            if (!deptId) {
-                teacherSelect.innerHTML = '<option value="">Select department first</option>';
-                teacherSelect.disabled = true;
-                if (helpText) helpText.textContent = 'Choose a department to load its teachers';
-                return;
-            }
-
-            // Show loading state
-            teacherSelect.innerHTML = '<option value="">Loading teachers...</option>';
-            teacherSelect.disabled = true;
-            if (helpText) helpText.textContent = 'Fetching teachers...';
-
-            try {
-                const res = await fetch(`/api/teachers/by-department/${deptId}`);
-                if (res.ok) {
-                    const teachers = await res.json();
-                    teacherSelect.innerHTML = '<option value="">None (optional)</option>';
-
-                    if (teachers.length === 0) {
-                        teacherSelect.innerHTML = '<option value="">No teachers in this department</option>';
-                        if (helpText) helpText.textContent = 'No teachers found for this department';
-                    } else {
-                        teachers.forEach(t => {
-                            const opt = document.createElement('option');
-                            opt.value = t.id;
-                            opt.textContent = `${t.full_name}${t.designation ? ' — ' + t.designation : ''}`;
-                            teacherSelect.appendChild(opt);
-                        });
-                        if (helpText) helpText.textContent = `${teachers.length} teacher${teachers.length !== 1 ? 's' : ''} available`;
-                    }
-                    teacherSelect.disabled = false;
-                } else {
-                    teacherSelect.innerHTML = '<option value="">Failed to load teachers</option>';
-                    if (helpText) helpText.textContent = 'Error loading teachers';
-                }
-            } catch (err) {
-                teacherSelect.innerHTML = '<option value="">Connection error</option>';
-                if (helpText) helpText.textContent = 'Connection error';
+function handleDepartmentChange() {
+    const deptId = document.getElementById('filterDepartment').value;
+    const tableCard = document.getElementById('subjectsTableCard');
+    const noSubjectsRow = document.getElementById('noSubjectsRow');
+    
+    if (deptId) {
+        tableCard.style.display = 'block';
+        // Filter rows by department
+        const rows = document.querySelectorAll('.subject-row');
+        let hasVisible = false;
+        rows.forEach(row => {
+            if (row.dataset.deptId === deptId) {
+                row.style.display = '';
+                hasVisible = true;
+            } else {
+                row.style.display = 'none';
             }
         });
+        
+        if (noSubjectsRow) {
+            noSubjectsRow.style.display = hasVisible ? 'none' : '';
+        }
+    } else {
+        tableCard.style.display = 'none';
     }
-});
+}
+
+function handleAddSubjectCourseChange() {
+    const courseId = document.getElementById('addSubjectCourse').value;
+    const deptSelect = document.getElementById('addSubjectDepartment');
+    const teacherSelect = document.getElementById('addSubjectTeacher');
+    
+    deptSelect.value = "";
+    teacherSelect.value = "";
+    teacherSelect.disabled = true;
+    
+    if (courseId) {
+        deptSelect.disabled = false;
+        Array.from(deptSelect.options).forEach(opt => {
+            if (opt.value === "") {
+                opt.style.display = '';
+            } else if (opt.dataset.courseId === courseId) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    } else {
+        deptSelect.disabled = true;
+    }
+}
+
+function handleAddSubjectDeptChange() {
+    const deptId = document.getElementById('addSubjectDepartment').value;
+    const teacherSelect = document.getElementById('addSubjectTeacher');
+    
+    teacherSelect.value = "";
+    
+    if (deptId) {
+        teacherSelect.disabled = false;
+        Array.from(teacherSelect.options).forEach(opt => {
+            if (opt.value === "") {
+                opt.style.display = '';
+            } else if (opt.dataset.deptId === deptId) {
+                opt.style.display = '';
+            } else {
+                opt.style.display = 'none';
+            }
+        });
+    } else {
+        teacherSelect.disabled = true;
+    }
+}
+
+function openAssignTeacherModal(subjectId, subjectName, subjectCode) {
+    document.getElementById('assignSubjectId').value = subjectId;
+    document.getElementById('assignSubjectName').value = subjectName + ' (' + subjectCode + ')';
+    const modal = new bootstrap.Modal(document.getElementById('assignTeacherModal'));
+    modal.show();
+}
+
+async function handleAssignTeacher(e) {
+    e.preventDefault();
+    const btn = document.getElementById('assignTeacherBtn');
+    btn.disabled = true;
+
+    const form = e.target;
+    const data = {
+        subject_id: parseInt(form.subject_id.value, 10),
+        teacher_id: parseInt(form.teacher_id.value, 10),
+        section: form.section.value.trim().toUpperCase()
+    };
+
+    try {
+        const res = await fetch('/api/subjects/assign-teacher', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Failed to assign teacher');
+            btn.disabled = false;
+        }
+    } catch (err) {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
+    }
+}
 </script>
 {% endblock %}

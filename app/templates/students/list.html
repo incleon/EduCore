@@ -2,548 +2,129 @@
 {% block title %}Students{% endblock %}
 {% block page_title %}Student Management{% endblock %}
 
-{% block extra_css %}
-<style>
-/* ── Department & Semester Grid ──────────────────────────── */
-.drill-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.drill-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 28px 24px;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.drill-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.drill-card:hover {
-    transform: translateY(-6px);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-lg);
-}
-
-.drill-card:hover::before { opacity: 1; }
-
-/* Gradient cycling */
-.drill-card:nth-child(6n+1)::before { background: var(--gradient-primary); }
-.drill-card:nth-child(6n+2)::before { background: var(--gradient-success); }
-.drill-card:nth-child(6n+3)::before { background: var(--gradient-warning); }
-.drill-card:nth-child(6n+4)::before { background: var(--gradient-danger); }
-.drill-card:nth-child(6n+5)::before { background: var(--gradient-info); }
-.drill-card:nth-child(6n+6)::before { background: var(--gradient-dark); }
-
-.drill-card:nth-child(6n+1) .drill-icon { background: rgba(99, 102, 241, 0.12); color: var(--accent-primary-light); }
-.drill-card:nth-child(6n+2) .drill-icon { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); }
-.drill-card:nth-child(6n+3) .drill-icon { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
-.drill-card:nth-child(6n+4) .drill-icon { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
-.drill-card:nth-child(6n+5) .drill-icon { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); }
-.drill-card:nth-child(6n+6) .drill-icon { background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); }
-
-.drill-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
-    flex-shrink: 0;
-    transition: var(--transition);
-}
-
-.drill-card:hover .drill-icon { transform: scale(1.08); }
-
-.drill-card-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.drill-card-info h5 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    letter-spacing: -0.01em;
-}
-
-.drill-card-info p {
-    margin: 3px 0 0;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.drill-card-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 14px;
-    border-top: 1px solid var(--border-color);
-}
-
-.drill-count {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-.drill-count .count-badge {
-    width: 26px;
-    height: 26px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-}
-
-.drill-card-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    transition: var(--transition);
-}
-
-.drill-card:hover .drill-card-arrow {
-    background: rgba(99, 102, 241, 0.15);
-    color: var(--accent-primary-light);
-    transform: translateX(3px);
-}
-
-/* ── Back Button ─────────────────────────────────────────── */
-.back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    transition: var(--transition);
-    text-decoration: none;
-}
-
-.back-btn:hover {
-    background: rgba(99, 102, 241, 0.08);
-    border-color: rgba(99, 102, 241, 0.3);
-    color: var(--accent-primary-light);
-}
-
-.back-btn:hover i { transform: translateX(-3px); }
-.back-btn i { font-size: 1rem; transition: transform 0.2s ease; }
-
-/* ── Breadcrumb strip ────────────────────────────────────── */
-.drill-breadcrumb {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-}
-
-.drill-breadcrumb .sep {
-    font-size: 0.7rem;
-    opacity: 0.5;
-}
-
-.drill-breadcrumb .crumb-link {
-    color: var(--accent-primary-light);
-    cursor: pointer;
-    transition: var(--transition-fast);
-}
-
-.drill-breadcrumb .crumb-link:hover {
-    text-decoration: underline;
-}
-
-.drill-breadcrumb .crumb-current {
-    color: var(--text-heading);
-    font-weight: 600;
-}
-
-/* ── Detail Header ───────────────────────────────────────── */
-.detail-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 24px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    margin-bottom: 20px;
-}
-
-.detail-header-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.3rem;
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--accent-primary-light);
-    flex-shrink: 0;
-}
-
-.detail-header-info h4 {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.detail-header-info p {
-    margin: 2px 0 0;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-}
-
-/* ── Semester Cards (wider, horizontal feel) ─────────────── */
-.semester-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
-}
-
-.semester-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 22px 20px;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    position: relative;
-    overflow: hidden;
-}
-
-.semester-card::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.semester-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--border-hover);
-    box-shadow: var(--shadow-md);
-}
-
-.semester-card:hover::before { opacity: 1; }
-
-.semester-card:nth-child(8n+1)::before { background: var(--gradient-primary); }
-.semester-card:nth-child(8n+2)::before { background: var(--gradient-success); }
-.semester-card:nth-child(8n+3)::before { background: var(--gradient-warning); }
-.semester-card:nth-child(8n+4)::before { background: var(--gradient-danger); }
-.semester-card:nth-child(8n+5)::before { background: var(--gradient-info); }
-.semester-card:nth-child(8n+6)::before { background: var(--gradient-dark); }
-.semester-card:nth-child(8n+7)::before { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
-.semester-card:nth-child(8n+8)::before { background: linear-gradient(135deg, #14b8a6, #3b82f6); }
-
-.semester-num {
-    width: 46px;
-    height: 46px;
-    border-radius: var(--radius-sm);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    transition: var(--transition);
-}
-
-.semester-card:nth-child(8n+1) .semester-num { background: rgba(99, 102, 241, 0.12); color: var(--accent-primary-light); }
-.semester-card:nth-child(8n+2) .semester-num { background: rgba(34, 197, 94, 0.12); color: var(--accent-green); }
-.semester-card:nth-child(8n+3) .semester-num { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); }
-.semester-card:nth-child(8n+4) .semester-num { background: rgba(239, 68, 68, 0.12); color: var(--accent-red); }
-.semester-card:nth-child(8n+5) .semester-num { background: rgba(59, 130, 246, 0.12); color: var(--accent-blue); }
-.semester-card:nth-child(8n+6) .semester-num { background: rgba(100, 116, 139, 0.12); color: var(--text-secondary); }
-.semester-card:nth-child(8n+7) .semester-num { background: rgba(236, 72, 153, 0.12); color: var(--accent-pink); }
-.semester-card:nth-child(8n+8) .semester-num { background: rgba(20, 184, 166, 0.12); color: var(--accent-teal); }
-
-.semester-card:hover .semester-num { transform: scale(1.08); }
-
-.semester-meta h6 {
-    margin: 0;
-    font-size: 0.92rem;
-    font-weight: 600;
-    color: var(--text-heading);
-}
-
-.semester-meta p {
-    margin: 2px 0 0;
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-.semester-arrow {
-    margin-left: auto;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    transition: var(--transition);
-}
-
-.semester-card:hover .semester-arrow {
-    color: var(--accent-primary-light);
-    transform: translateX(3px);
-}
-
-/* ── View transitions ────────────────────────────────────── */
-.view-panel { transition: opacity 0.2s ease; }
-.view-panel.hiding { opacity: 0; }
-
-/* ── Search bar in student list ──────────────────────────── */
-.student-search {
-    position: relative;
-    max-width: 320px;
-}
-
-.student-search input {
-    padding-left: 38px;
-    font-size: 0.85rem;
-}
-
-.student-search .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-/* ── Empty state ─────────────────────────────────────────── */
-.empty-state-custom {
-    text-align: center;
-    padding: 60px 24px;
-    color: var(--text-muted);
-}
-
-.empty-state-custom i {
-    font-size: 3rem;
-    margin-bottom: 16px;
-    opacity: 0.3;
-    display: block;
-}
-
-.empty-state-custom p { font-size: 0.9rem; margin: 0; }
-
-@media (max-width: 576px) {
-    .drill-grid, .semester-grid { grid-template-columns: 1fr; }
-}
-</style>
-{% endblock %}
-
 {% block content %}
 
-<!-- ═══════════════════════════════════════════════════════════
-     VIEW 1: DEPARTMENT CARDS (Default)
-     ═══════════════════════════════════════════════════════════ -->
-<div id="viewDepartments" class="view-panel">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <p class="text-muted mb-0" style="font-size:0.85rem;">
-            <i class="bi bi-building me-1"></i>Select a department to browse students
-        </p>
-        {% if 'manage_students' in permissions %}
-        <a href="/students/create" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Add Student
-        </a>
-        {% endif %}
-    </div>
-
-    {% if departments | length > 0 %}
-    <div class="drill-grid">
-        {% for dept in departments %}
-        {% set ns = namespace(count=0) %}
-        {% for s in items %}
-            {% if s.department_id == dept.id %}
-                {% set ns.count = ns.count + 1 %}
-            {% endif %}
-        {% endfor %}
-        <div class="drill-card" onclick="showSemesters({{ dept.id }}, '{{ dept.name | e }}', '{{ dept.code | e }}')" id="deptCard-{{ dept.id }}">
-            <div class="drill-card-header">
-                <div class="drill-icon">
-                    <i class="bi bi-building"></i>
-                </div>
-                <div class="drill-card-info">
-                    <h5>{{ dept.name }}</h5>
-                    <p><code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">{{ dept.code }}</code></p>
-                </div>
-            </div>
-            <div class="drill-card-footer">
-                <div class="drill-count">
-                    <div class="count-badge">{{ ns.count }}</div>
-                    <span>Student{{ 's' if ns.count != 1 }} enrolled</span>
-                </div>
-                <div class="drill-card-arrow">
-                    <i class="bi bi-arrow-right"></i>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty-state-custom">
-        <i class="bi bi-building"></i>
-        <p>No departments found. Create departments first to organize students.</p>
-    </div>
+<!-- Header & Add Button -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <p class="text-muted mb-0" style="font-size:0.85rem;">
+        <i class="bi bi-people me-1"></i>Manage student records and enrollments
+    </p>
+    {% if 'manage_students' in permissions %}
+    <a href="/students/create" class="btn btn-primary shadow-sm">
+        <i class="bi bi-plus-lg me-2"></i>Add Student
+    </a>
     {% endif %}
 </div>
 
-
-<!-- ═══════════════════════════════════════════════════════════
-     VIEW 2: SEMESTER CARDS (After department click)
-     ═══════════════════════════════════════════════════════════ -->
-<div id="viewSemesters" class="view-panel" style="display:none;">
-    <!-- Back + Breadcrumb -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <div class="drill-breadcrumb">
-                <span class="crumb-link" onclick="backToDepts()">Departments</span>
-                <i class="bi bi-chevron-right sep"></i>
-                <span class="crumb-current" id="semBreadcrumbDept">—</span>
+<!-- Filter Section -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body bg-light rounded">
+        <form method="GET" action="/students" class="row g-3 align-items-end" id="filterForm">
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold">Course</label>
+                <select name="course_id" id="course_id" class="form-select border-0 shadow-sm">
+                    <option value="">All Courses</option>
+                    {% for course in courses %}
+                    <option value="{{ course.id }}" {% if current_course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
-            <button class="back-btn mt-1" onclick="backToDepts()" id="backToDeptBtn">
-                <i class="bi bi-arrow-left"></i>
-                <span>All Departments</span>
-            </button>
-        </div>
-        {% if 'manage_students' in permissions %}
-        <a href="/students/create" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Add Student
-        </a>
-        {% endif %}
-    </div>
-
-    <!-- Department header -->
-    <div class="detail-header" id="semDeptHeader">
-        <div class="detail-header-icon">
-            <i class="bi bi-building"></i>
-        </div>
-        <div class="detail-header-info">
-            <h4 id="semDeptName">Department</h4>
-            <p id="semDeptMeta">Select a semester</p>
-        </div>
-    </div>
-
-    <!-- Semester cards container -->
-    <div id="semesterCardsContainer" class="semester-grid">
-        <!-- Populated by JS -->
+            <div class="col-md-4">
+                <label class="form-label text-muted small fw-bold">Department</label>
+                <select name="department_id" id="department_id" class="form-select border-0 shadow-sm">
+                    <option value="">All Departments</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}" data-course="{{ dept.course_id }}" {% if current_department_id == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-muted small fw-bold">Search (Name/ID)</label>
+                <input type="text" name="search" class="form-control border-0 shadow-sm" placeholder="Search..." value="{{ search }}">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1 shadow-sm">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                <a href="/students" class="btn btn-light border shadow-sm" title="Clear Filters">
+                    <i class="bi bi-x-circle text-muted"></i>
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
-
-<!-- ═══════════════════════════════════════════════════════════
-     VIEW 3: STUDENT TABLE (After semester click)
-     ═══════════════════════════════════════════════════════════ -->
-<div id="viewStudents" class="view-panel" style="display:none;">
-    <!-- Back + Breadcrumb -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <div class="drill-breadcrumb">
-                <span class="crumb-link" onclick="backToDepts()">Departments</span>
-                <i class="bi bi-chevron-right sep"></i>
-                <span class="crumb-link" onclick="backToSemesters()" id="stuBreadcrumbDept">—</span>
-                <i class="bi bi-chevron-right sep"></i>
-                <span class="crumb-current" id="stuBreadcrumbSem">—</span>
-            </div>
-            <button class="back-btn mt-1" onclick="backToSemesters()" id="backToSemBtn">
-                <i class="bi bi-arrow-left"></i>
-                <span>Semesters</span>
-            </button>
-        </div>
-        {% if 'manage_students' in permissions %}
-        <a href="/students/create" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-2"></i>Add Student
-        </a>
+<!-- Results Section -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">Students List</h5>
+        {% if is_filtered %}
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3">{{ total }} Found</span>
         {% endif %}
     </div>
-
-    <!-- Context header -->
-    <div class="detail-header" id="stuContextHeader">
-        <div class="detail-header-icon">
-            <i class="bi bi-people"></i>
+    <div class="card-body p-0">
+        {% if not is_filtered %}
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-funnel fs-1 mb-3 d-block text-secondary opacity-50"></i>
+            <h5 class="fw-bold">Select Filters to View Students</h5>
+            <p class="mb-0">Please select a Course, Department, or use the Search bar to load student records.</p>
         </div>
-        <div class="detail-header-info">
-            <h4 id="stuHeaderTitle">Students</h4>
-            <p id="stuHeaderMeta">—</p>
+        {% elif items | length == 0 %}
+        <div class="p-5 text-center text-muted">
+            <i class="bi bi-person-x fs-1 mb-3 d-block text-secondary opacity-50"></i>
+            <h5 class="fw-bold">No Students Found</h5>
+            <p class="mb-0">No students match the selected filter criteria.</p>
         </div>
-    </div>
-
-    <!-- Search within students -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="student-search">
-            <i class="bi bi-search search-icon"></i>
-            <input type="text" class="form-control" id="studentSearchInput"
-                   placeholder="Search by name or enrollment..." oninput="filterStudentTable()">
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-muted small fw-bold">
+                    <tr>
+                        <th class="ps-4">Student ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Semester</th>
+                        <th>Section</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in items %}
+                    <tr>
+                        <td class="ps-4"><code class="text-primary fw-bold">{{ s.student_id or s.enrollment_number }}</code></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0;">
+                                    {{ s.user.full_name[:2].upper() if s.user else 'S' }}
+                                </div>
+                                <span class="fw-medium text-dark">{{ s.user.full_name if s.user else 'Unknown' }}</span>
+                            </div>
+                        </td>
+                        <td>{{ s.department.name if s.department else '—' }}</td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3">
+                                Semester {{ s.semester }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ s.section or '—' }}</td>
+                        <td class="text-end pe-4">
+                            {% if 'manage_students' in permissions %}
+                            <a href="/students/{{ s.id }}" class="btn btn-sm btn-outline-primary shadow-sm" title="View Student">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger ms-1 shadow-sm" onclick="deleteItem('students', {{ s.id }})" title="Delete Student">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                            {% else %}
+                            <span class="text-muted small">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <span class="text-muted" style="font-size:0.82rem;" id="studentCountLabel"></span>
-    </div>
-
-    <!-- Student table -->
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Enrollment</th>
-                            <th>Name</th>
-                            <th>Section</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentTableBody">
-                    <!-- Populated by JS -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -551,218 +132,49 @@
 
 {% block extra_js %}
 <script>
-// ── All student data embedded from server ──
-const allStudents = [
-    {% for s in items %}
-    {
-        id: {{ s.id }},
-        enrollment_number: "{{ s.enrollment_number | e }}",
-        full_name: "{{ s.user.full_name | e if s.user else 'N/A' }}",
-        department_id: {{ s.department_id or 'null' }},
-        department_name: "{{ s.department.name | e if s.department else 'N/A' }}",
-        semester: {{ s.semester }},
-        section: "{{ s.section | e if s.section else '' }}",
-        status: "{{ s.status.value if s.status else 'active' }}",
-    },
-    {% endfor %}
-];
-
-const canManage = {{ 'true' if 'manage_students' in permissions else 'false' }};
-
-// ── State ──
-let currentDeptId = null;
-let currentDeptName = '';
-let currentDeptCode = '';
-let currentSemester = null;
-let currentFilteredStudents = [];
-
-
-// ══════════════════════════════════════════════════════════════
-// VIEW 1 → VIEW 2: Show semesters for a department
-// ══════════════════════════════════════════════════════════════
-function showSemesters(deptId, deptName, deptCode) {
-    currentDeptId = deptId;
-    currentDeptName = deptName;
-    currentDeptCode = deptCode;
-
-    // Get students for this department
-    const deptStudents = allStudents.filter(s => s.department_id === deptId);
-
-    // Find unique semesters
-    const semMap = {};
-    deptStudents.forEach(s => {
-        if (!semMap[s.semester]) semMap[s.semester] = 0;
-        semMap[s.semester]++;
-    });
-    const semesters = Object.keys(semMap).map(Number).sort((a, b) => a - b);
-
-    // Update breadcrumb & header
-    document.getElementById('semBreadcrumbDept').textContent = deptName;
-    document.getElementById('semDeptName').textContent = deptName;
-    document.getElementById('semDeptMeta').innerHTML =
-        '<code style="font-size:0.72rem;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;color:var(--text-secondary);">' +
-        deptCode + '</code> · ' + deptStudents.length + ' student' +
-        (deptStudents.length !== 1 ? 's' : '') + ' total · ' +
-        semesters.length + ' semester' + (semesters.length !== 1 ? 's' : '');
-
-    // Build semester cards
-    const container = document.getElementById('semesterCardsContainer');
-    if (semesters.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state-custom" style="grid-column: 1 / -1;">
-                <i class="bi bi-calendar-x"></i>
-                <p>No students enrolled in this department yet.</p>
-            </div>`;
-    } else {
-        container.innerHTML = semesters.map(sem => `
-            <div class="semester-card" onclick="showStudents(${sem})">
-                <div class="semester-num">${sem}</div>
-                <div class="semester-meta">
-                    <h6>Semester ${sem}</h6>
-                    <p>${semMap[sem]} student${semMap[sem] !== 1 ? 's' : ''}</p>
-                </div>
-                <i class="bi bi-arrow-right semester-arrow"></i>
-            </div>
-        `).join('');
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('course_id');
+    const deptSelect = document.getElementById('department_id');
+    
+    if(courseSelect && deptSelect) {
+        // Capture original selected value to maintain state after JS runs
+        const originalDeptValue = deptSelect.value;
+        
+        courseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            const options = deptSelect.options;
+            let firstVisible = null;
+            let currentSelectedStillVisible = false;
+            
+            for(let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                if(opt.value === "") {
+                    opt.style.display = '';
+                    continue;
+                }
+                
+                if(!courseId || opt.getAttribute('data-course') === courseId) {
+                    opt.style.display = '';
+                    if(!firstVisible) firstVisible = opt;
+                    if(opt.selected) currentSelectedStillVisible = true;
+                } else {
+                    opt.style.display = 'none';
+                }
+            }
+            
+            // If the currently selected department belongs to a different course, reset it
+            if(courseId && !currentSelectedStillVisible && deptSelect.value !== "") {
+                deptSelect.value = "";
+            }
+        });
+        
+        // Trigger initially to set up state based on URL params
+        courseSelect.dispatchEvent(new Event('change'));
+        // Restore original value if it was wiped by the dispatchEvent
+        if (originalDeptValue) {
+            deptSelect.value = originalDeptValue;
+        }
     }
-
-    // Transition views
-    switchView('viewDepartments', 'viewSemesters');
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// VIEW 2 → VIEW 3: Show student list for dept + semester
-// ══════════════════════════════════════════════════════════════
-function showStudents(semester) {
-    currentSemester = semester;
-
-    // Filter students
-    currentFilteredStudents = allStudents.filter(
-        s => s.department_id === currentDeptId && s.semester === semester
-    );
-
-    // Update breadcrumb
-    document.getElementById('stuBreadcrumbDept').textContent = currentDeptName;
-    document.getElementById('stuBreadcrumbSem').textContent = 'Semester ' + semester;
-
-    // Update header
-    document.getElementById('stuHeaderTitle').textContent = currentDeptName + ' — Semester ' + semester;
-    document.getElementById('stuHeaderMeta').textContent =
-        currentFilteredStudents.length + ' student' +
-        (currentFilteredStudents.length !== 1 ? 's' : '') + ' enrolled';
-
-    // Clear search
-    document.getElementById('studentSearchInput').value = '';
-
-    // Render table
-    renderStudentTable(currentFilteredStudents);
-
-    // Transition
-    switchView('viewSemesters', 'viewStudents');
-}
-
-
-// ── Render student rows ──
-function renderStudentTable(students) {
-    const tbody = document.getElementById('studentTableBody');
-    document.getElementById('studentCountLabel').textContent =
-        students.length + ' student' + (students.length !== 1 ? 's' : '');
-
-    if (students.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-muted py-5">
-                    <i class="bi bi-people" style="font-size:2rem;display:block;margin-bottom:8px;opacity:0.3;"></i>
-                    No students found.
-                </td>
-            </tr>`;
-        return;
-    }
-
-    tbody.innerHTML = students.map(s => {
-        const statusClass = s.status === 'active' ? 'success' :
-                            s.status === 'graduated' ? 'info' :
-                            s.status === 'suspended' ? 'warning' : 'secondary';
-        return `
-        <tr style="animation: fadeInUp 0.3s ease-out;">
-            <td><code>${s.enrollment_number}</code></td>
-            <td>
-                <div class="d-flex align-items-center gap-2">
-                    <div style="width:32px;height:32px;border-radius:8px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">
-                        ${s.full_name[0].toUpperCase()}
-                    </div>
-                    ${s.full_name}
-                </div>
-            </td>
-            <td>${s.section || '—'}</td>
-            <td><span class="badge bg-${statusClass}-subtle text-${statusClass}" style="font-size:0.75rem;">${s.status}</span></td>
-            <td>
-                <div class="d-flex gap-1">
-                    <a href="/students/${s.id}" class="btn btn-sm btn-outline-primary" title="View details">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    ${canManage ? `
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('students', ${s.id})" title="Delete student">
-                        <i class="bi bi-trash"></i>
-                    </button>` : ''}
-                </div>
-            </td>
-        </tr>`;
-    }).join('');
-}
-
-
-// ── Client-side search within current student list ──
-function filterStudentTable() {
-    const query = document.getElementById('studentSearchInput').value.toLowerCase().trim();
-    if (!query) {
-        renderStudentTable(currentFilteredStudents);
-        return;
-    }
-    const filtered = currentFilteredStudents.filter(s =>
-        s.full_name.toLowerCase().includes(query) ||
-        s.enrollment_number.toLowerCase().includes(query)
-    );
-    renderStudentTable(filtered);
-}
-
-
-// ══════════════════════════════════════════════════════════════
-// NAVIGATION: Back buttons
-// ══════════════════════════════════════════════════════════════
-function backToDepts() {
-    currentDeptId = null;
-    currentSemester = null;
-
-    // Hide whichever view is active, show departments
-    const activeView = document.getElementById('viewStudents').style.display !== 'none'
-        ? 'viewStudents'
-        : 'viewSemesters';
-    switchView(activeView, 'viewDepartments');
-}
-
-function backToSemesters() {
-    currentSemester = null;
-    switchView('viewStudents', 'viewSemesters');
-}
-
-
-// ── Smooth view transition helper ──
-function switchView(hideId, showId) {
-    const hideEl = document.getElementById(hideId);
-    const showEl = document.getElementById(showId);
-
-    hideEl.classList.add('hiding');
-    setTimeout(() => {
-        hideEl.style.display = 'none';
-        hideEl.classList.remove('hiding');
-        showEl.style.display = 'block';
-        // Force re-trigger animation
-        showEl.style.animation = 'none';
-        showEl.offsetHeight; // reflow
-        showEl.style.animation = '';
-    }, 200);
-}
+});
 </script>
 {% endblock %}

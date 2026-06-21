@@ -43,6 +43,7 @@ class Teacher(BaseModel):
     )
 
     # ── Teacher-Specific Fields ──────────────────────────────
+    faculty_id = Column(String(20), unique=True, nullable=False, index=True)
     employee_id = Column(String(50), unique=True, nullable=False, index=True)
     designation = Column(String(100), nullable=True)
     specialization = Column(String(200), nullable=True)
@@ -52,12 +53,12 @@ class Teacher(BaseModel):
     bio = Column(Text, nullable=True)
 
     # ── RELATIONSHIPS ────────────────────────────────────────
-    user = relationship("User", back_populates="teacher", lazy="joined")
+    user = relationship("User", back_populates="teacher", lazy="selectin")
     department = relationship(
         "Department",
         back_populates="teachers",
         foreign_keys=[department_id],
-        lazy="joined",
+        lazy="selectin",
     )
 
     # MANY-TO-MANY: Teacher teaches many subjects via SubjectTeacher
@@ -65,7 +66,7 @@ class Teacher(BaseModel):
         "SubjectTeacher",
         back_populates="teacher",
         cascade="all, delete-orphan",
-        lazy="joined",
+        lazy="selectin",
     )
 
     # ONE-TO-MANY: Teacher marks attendance

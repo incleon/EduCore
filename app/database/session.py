@@ -27,13 +27,23 @@ logger = get_logger(__name__)
 # The engine is created once when this module is first imported.
 # Python's module system ensures it's only created once (singleton).
 
+import os
+
+# Resolve SQLite relative path (./cms.db) to an absolute path so data isn't lost
+# if the server is started from a different working directory.
+db_url = settings.DATABASE_URL
+if db_url.startswith("sqlite:///./"):
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    db_name = db_url.replace("sqlite:///./", "")
+    db_url = f"sqlite:///{os.path.join(base_dir, db_name)}"
+
 # SQLite-specific: check_same_thread=False allows multi-threaded access
 connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
+if db_url.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     connect_args=connect_args,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
     pool_pre_ping=True,   # Verify connections before use
