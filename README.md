@@ -7,39 +7,31 @@ EduCore is a robust, modular, and highly scalable College Management System buil
 
 ## ✨ Core Modules & Features
 
-### 🔐 1. Advanced Role-Based Access Control (RBAC)
-EduCore uses a highly granular permission system rather than simple role checks.
-- **Roles:** Admin, HOD, Teacher, Student, System Admin
-- **Dynamic Permissions:** Every action (e.g., `manage_fees`, `view_attendance`) is checked securely via middleware.
-- **Hierarchical Access:** HODs can only manage their specific department's data; Teachers only see their assigned subjects; Students only view their personal records.
+### 🔐 1. Advanced Role-Based Access Control (RBAC) & Dashboards
+EduCore uses a highly granular permission system rather than simple role checks, with dynamic, role-specific dashboards built using the **Factory Pattern**.
+- **Roles:** Admin, HOD, Teacher, Student, Accountant, Librarian.
+- **Dynamic Dashboards:** The system evaluates the user's highest role hierarchically and serves specialized, metric-rich dashboards tailored to their responsibilities.
+- **HOD Sandboxing:** HODs are strictly sandboxed to their own department. They manage only their department's students, teachers, subjects, and timetables without global visibility.
 
-### 📚 2. Academics Management
+### 🏛️ 2. Enterprise Architecture & OOP Principles
+The codebase is structured for enterprise scalability using advanced Object-Oriented Programming (OOP) concepts and Design Patterns:
+- **Service Layer & Repository Pattern:** Decouples business logic from database operations, ensuring modularity and easier testing.
+- **Factory Pattern:** Dynamically provisions role-specific UI components and dashboards.
+- **Observer Pattern:** Implements an asynchronous event dispatcher for system events (e.g., triggering email notifications upon student admission or fee payment).
+- **Strategy Pattern:** Dynamically applies different fee calculation algorithms (Standard, Late Penalty, Scholarship).
+
+### 📧 3. Automated Email Integration
+- **Institutional Identity:** Automatically generates structured institutional emails (`firstname.studentid@cms.edu`) and secure random passwords for new students and faculty.
+- **Event-Driven Notifications:** Asynchronously dispatches onboarding emails and fee payment receipts to personal email addresses without blocking the main application thread.
+
+### 📚 4. Academics & Timetable Management
 - **Hierarchical Structure:** Courses ➔ Departments ➔ Subjects.
-- **Subject Allocation:** Assign specific subjects to teachers dynamically.
-- **Semester Tracking:** All academic data is tightly bound to semester schedules.
+- **Interactive Timetables:** Grid-based, visually structured weekly schedules with drafted vs. approved version control.
+- **PDF Exports:** Generate responsive, landscape PDF downloads for student and teacher schedules.
 
-### 📅 3. Interactive Timetable System
-- **Grid-Based UI:** Completely interactive, visually structured weekly schedule.
-- **Free Periods:** Seamlessly configure non-instructional blocks.
-- **Approval Workflow:** HODs draft timetables and submit them. Admins must explicitly approve them before they go live.
-- **Version Control:** Edits to approved timetables track draft vs approved states.
-- **PDF Export:** Responsive, landscape PDF downloads for students and teachers.
-
-### 🏫 4. Enterprise Library Dashboard
-- **Real-Time Metrics:** Live statistics of total inventory, available copies, and active/overdue issues.
-- **Dual-Pane Interface:** Split views for Book Catalog and Active Book Issues.
-- **Integrated Modals:** Add new books, issue books to student IDs, and process returns (with late fee calculations) all within a single page without reloading.
-- **Student View:** Students only see the public catalog and books strictly issued to them.
-
-### 💰 5. Fees & Financials
-- **Fee Configuration:** Define fee structures for specific courses, departments, and semesters.
-- **Payment Processing:** Record partial or full payments, generate receipt numbers, and track cash/online transactions.
-- **Status Tracking:** Automatically tags students as `Paid`, `Partial`, or `Pending/Overdue`.
-
-### 📊 6. Marks & Attendance
-- **Attendance:** Date-based bulk attendance marking for classes.
-- **Marks:** Uploading exam scores bound to specific subjects and semesters.
-- **Analytics:** Teacher dashboards showing class performance and attendance averages.
+### 🏫 5. Comprehensive Library & Financial Systems
+- **Library Dashboard:** Live statistics of inventory, active issues, and overdue returns. Modals for rapid, single-page book management and issuance.
+- **Fee Management:** Flexible fee structures, partial/full payment tracking, and automated receipt generation.
 
 ---
 
@@ -50,8 +42,8 @@ EduCore uses a highly granular permission system rather than simple role checks.
 | **Backend Framework** | FastAPI (Python) |
 | **Templating Engine** | Jinja2 |
 | **Database ORM** | SQLAlchemy |
-| **Database System** | SQLite (Production ready via MySQL Migration scripts) |
-| **Frontend Styling** | Bootstrap 5, Bootstrap Icons, Custom CSS |
+| **Database System** | SQLite (Production ready via PostgreSQL/MySQL Migration scripts) |
+| **Frontend Styling** | Vanilla CSS, Bootstrap 5, Bootstrap Icons |
 | **Typography** | Google Fonts (DM Sans) |
 
 ---
@@ -69,24 +61,32 @@ cd CMS
 pip install -r requirements.txt
 ```
 
-### 3. Running the Server
-Start the FastAPI server via Uvicorn (configured in the run script):
+### 3. Environment Configuration
+Create a `.env` file in the root directory (use `.env.example` as a template) and configure your database and email SMTP settings.
+
+### 4. Database Initialization
+Seed the database with initial academic structures, roles, permissions, and 100+ realistic faculty records:
+```bash
+python app/database/seed.py
+```
+
+### 5. Running the Server
+Start the FastAPI server via Uvicorn:
 ```bash
 python run.py
 ```
-
 The application will be accessible at: `http://localhost:8000`
 
 ---
 
 ## 📁 Repository Structure
 To keep the root folder clean, administrative and utility files have been organized into subdirectories.
-- `app/`: The core FastAPI application (models, routers, templates, services, database).
-- `scripts/`: Development utility scripts (Data generation, DB migrations, mass-string replacements).
-- `docs/`: Historical documentation (Migration guides, Refactoring summaries).
+- `app/`: The core FastAPI application (models, routers, templates, services, database, core architecture).
+- `scripts/`: Development utility scripts (Data generation, DB migrations, file organizers).
+- `docs/`: Historical documentation and deployment plans.
 - `logs/`: Application audit logs.
 - `uploads/`: Media and file upload directory.
 
 ---
 
-*Powered by EduCore — Streamlining academic administration.*
+*Powered by EduCore — Streamlining academic administration through enterprise-grade software design.*
