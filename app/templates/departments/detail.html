@@ -32,7 +32,7 @@
                 <p class="text-muted mb-3">{{ department.code }}</p>
                 
                 <div class="d-inline-flex flex-column align-items-center p-3 rounded mt-2" style="background: var(--bg-body); border: 1px solid var(--border-color); width: 100%;">
-                    <span class="fs-2 fw-bold" style="color: var(--color-primary);">{{ department.subjects.count() }}</span>
+                    <span class="fs-2 fw-bold" style="color: var(--color-primary);">{{ subjects|length }}</span>
                     <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.05em;">Subjects</span>
                 </div>
             </div>
@@ -80,6 +80,7 @@
                         <thead class="bg-light">
                             <tr>
                                 <th class="ps-4 text-secondary fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">Code</th>
+                                <th class="text-secondary fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">Sem</th>
                                 <th class="text-secondary fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">Name</th>
                                 <th class="text-secondary fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">Credits</th>
                                 <th class="text-secondary fw-semibold" style="font-size: 0.85rem; text-transform: uppercase;">Type</th>
@@ -87,18 +88,19 @@
                             </tr>
                         </thead>
                         <tbody>
-                        {% for subject in department.subjects.all() %}
+                        {% for subject in subjects %}
                         <tr>
                             <td class="ps-4"><span style="font-family: monospace; background: var(--bg-surface); padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85rem;">{{ subject.code }}</span></td>
+                            <td><span class="badge bg-secondary border">Sem {{ subject.semester }}</span></td>
                             <td class="fw-medium" style="color: var(--text-heading);">{{ subject.name }}</td>
                             <td><span class="badge" style="background: #eef0f7; color: var(--color-primary); border: 1px solid var(--border-color);">{{ subject.credits }} Cr</span></td>
                             <td>
-                                {% if subject.type.value == 'theory' %}
+                                {% if subject.type == 'theory' %}
                                 <span class="badge" style="background: #eef0f7; color: var(--color-primary); border: 1px solid var(--border-color);">Theory</span>
-                                {% elif subject.type.value == 'practical' %}
+                                {% elif subject.type == 'practical' %}
                                 <span class="badge bg-light text-dark border">Practical</span>
                                 {% else %}
-                                <span class="badge bg-light text-secondary border">{{ subject.type.value }}</span>
+                                <span class="badge bg-light text-secondary border">{{ subject.type|capitalize }}</span>
                                 {% endif %}
                             </td>
                             {% if 'manage_subjects' in permissions %}
@@ -108,7 +110,7 @@
                             {% endif %}
                         </tr>
                         {% else %}
-                        <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-journal-x display-6 d-block mb-3 opacity-50"></i>No subjects found in this department</td></tr>
+                        <tr><td colspan="6" class="text-center text-muted py-5"><i class="bi bi-journal-x display-6 d-block mb-3 opacity-50"></i>No subjects found in this department</td></tr>
                         {% endfor %}
                         </tbody>
                     </table>

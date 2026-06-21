@@ -155,8 +155,8 @@ class StudentService(IService):
 
         return {"items": items, "total": total, "page": page, "page_size": page_size}
 
-    def get_filtered_students(self, course_id: int = None, department_id: int = None):
-        return self._student_repo.get_filtered_students(course_id, department_id)
+    def get_filtered_students(self, course_id: int = None, department_id: int = None, search: str = None):
+        return self._student_repo.get_filtered_students(course_id, department_id, search)
 
     def _get_branch_code(self, department_code: str) -> str:
         if department_code:
@@ -189,28 +189,6 @@ class StudentService(IService):
         return f"{prefix}{next_seq:03d}"
 
     def create(self, data: Dict[str, Any]):
-        # Check duplicate enrollment
-        if self._student_repo.get_by_enrollment(data.get("enrollment_number", "")):
-            raise ConflictException(detail="Enrollment number already exists")
-        if self._user_repo.get_by_email(data.get("email", "")):
-            raise ConflictException(detail="Email already registered")
-
-        # Create user first
-        user_data = {
-            "email": data.pop("email"),
-            "username": data.pop("username"),
-            "hashed_password": PasswordHasher.hash_password(data.pop("password")),
-            "full_name": data.pop("full_name"),
-            "phone": data.pop("phone", None),
-            "gender": data.pop("gender", None),
-        }
-        user = self._user_repo.create(user_data)
-
-        # Assign student role
-        student_role = self._role_repo.get_by_name("student")
-        if student_role:
-            self._user_repo.assign_role(user.id, student_role.id)
-
         # Generate student_id
         import datetime
         admission_date = data.get("admission_date")
@@ -234,13 +212,75 @@ class StudentService(IService):
                 dept_code = dept.code
                 
         branch_code = self._get_branch_code(dept_code)
-        data["student_id"] = self.generate_student_id(year, branch_code)
+        student_id = self.generate_student_id(year, branch_code)
+
+        # Generate institutional email
+        # Process names
+        first_name_input = data.pop("first_name", "").strip()
+        middle_name_input = data.pop("middle_name", "").strip()
+        last_name_input = data.pop("last_name", "").strip()
+        
+        name_parts = [first_name_input]
+        if middle_name_input:
+            name_parts.append(middle_name_input)
+        if last_name_input:
+            name_parts.append(last_name_input)
+            
+        full_name = " ".join(name_parts)
+        
+        first_name = first_name_input.lower() if first_name_input else "student"
+        import re
+        first_name = re.sub(r'[^a-z0-9]', '', first_name)
+        student_id_lower = student_id.lower()
+        institutional_email = f"{first_name}.{student_id_lower}@cms.edu"
+
+        if self._user_repo.get_by_email(institutional_email):
+            raise ConflictException(detail="Generated email already registered")
+
+        personal_email = data.pop("personal_email")
+        
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        password = ''.join(secrets.choice(alphabet) for i in range(10))
+        username = student_id_lower
+
+        # Create user first
+        user_data = {
+            "email": institutional_email,
+            "username": username,
+            "hashed_password": PasswordHasher.hash_password(password),
+            "full_name": full_name,
+            "phone": data.pop("phone", None),
+            "gender": data.pop("gender", None),
+        }
+        user = self._user_repo.create(user_data)
+
+        # Assign student role
+        student_role = self._role_repo.get_by_name("student")
+        if student_role:
+            self._user_repo.assign_role(user.id, student_role.id)
+
+        data.pop("email", None) # Remove any dummy email if present
+        data["student_id"] = student_id
+        data["enrollment_number"] = f"ENR-{student_id}"
+        data["personal_email"] = personal_email
+        data["initial_password"] = password
 
         # Create student profile
         data["user_id"] = user.id
         student = self._student_repo.create(data)
         self._db.refresh(student)
-        return student
+
+        email_data = {
+            "student_name": full_name,
+            "personal_email": personal_email,
+            "student_id": student_id,
+            "institutional_email": institutional_email,
+            "generated_password": password
+        }
+
+        return student, email_data
 
     def update(self, id: int, data: Dict[str, Any]):
         student = self._student_repo.get_by_id(id)
@@ -267,14 +307,43 @@ class StudentService(IService):
         student = self._student_repo.get_by_id(id)
         if not student:
             return False
+        
+        # Free up email and username so they can be reused, but keep the record (soft delete)
+        # This ensures the student_id sequence continues to increment properly.
+        import uuid
+        user = self._user_repo.get_by_id(student.user_id)
+        if user:
+            random_suffix = uuid.uuid4().hex[:8]
+            user.email = f"deleted_{random_suffix}_{user.email}"
+            user.username = f"deleted_{random_suffix}_{user.username}"
+            self._db.commit()
+            
         self._user_repo.soft_delete(student.user_id)
         return self._student_repo.soft_delete(id)
 
     def get_students_for_subject(self, subject_id: int):
         from app.repositories.concrete import SubjectRepository
+        from app.models.department import Department
+        from app.models.student import Student
+        
         subject = SubjectRepository(self._db).get_by_id(subject_id)
         if not subject:
             raise NotFoundException("Subject", subject_id)
+            
+        # If subject belongs to Applied Sciences, fetch all B.TECH students of that semester
+        dept = self._db.query(Department).get(subject.department_id)
+        if dept and "Applied Sciences" in dept.name and dept.course and dept.course.name == "B.TECH":
+            return (
+                self._db.query(Student)
+                .join(Department, Student.department_id == Department.id)
+                .filter(
+                    Department.course_id == dept.course_id,
+                    Student.semester == subject.semester,
+                    Student.is_deleted == False
+                )
+                .all()
+            )
+            
         return self._student_repo.get_by_department_and_semester(
             department_id=subject.department_id,
             semester=subject.semester
@@ -714,26 +783,48 @@ class FeeService(IService):
     def delete(self, id: int) -> bool:
         return self._fee_repo.soft_delete(id)
 
-    def record_payment(self, fee_id: int, paid_amount: float, payment_method: str = "cash"):
-        """Record a fee payment."""
+    def record_payment(self, fee_id: int, paid_amount: float, payment_method: str = "cash", strategy_type: str = "standard"):
+        """Record a fee payment using Strategy & Observer patterns."""
+        from app.core.events import EventDispatcher, FeePaidEvent
+        from app.services.fee_strategies import StandardFeeStrategy, LatePenaltyStrategy, ScholarshipStrategy
+
         fee = self.get(fee_id)
-        new_paid = fee.paid_amount + paid_amount
+        
+        # Strategy Pattern: Select appropriate calculation strategy
+        if strategy_type == "late_penalty":
+            strategy = LatePenaltyStrategy()
+        elif strategy_type == "scholarship":
+            strategy = ScholarshipStrategy()
+        else:
+            strategy = StandardFeeStrategy()
+            
+        calc_result = strategy.calculate(fee, paid_amount)
+        
         receipt = f"RCP-{uuid.uuid4().hex[:8].upper()}"
 
         update_data = {
-            "paid_amount": new_paid,
+            "paid_amount": calc_result["paid_amount"],
             "payment_method": payment_method,
             "receipt_number": receipt,
             "paid_date": date.today(),
+            "status": calc_result["status"],
         }
-
-        if new_paid >= fee.amount:
-            update_data["status"] = "paid"
-        else:
-            update_data["status"] = "partial"
+        
+        if "remarks" in calc_result:
+            update_data["remarks"] = calc_result["remarks"]
 
         self._fee_repo.update(fee_id, update_data)
         self._db.refresh(fee)
+        
+        # Observer Pattern: Dispatch event to decoupled listeners
+        EventDispatcher.dispatch(FeePaidEvent(
+            fee_id=fee.id,
+            student_id=fee.student_id,
+            paid_amount=paid_amount,
+            status=update_data["status"],
+            receipt=receipt
+        ))
+        
         return fee
 
     def get_pending_fees(self):

@@ -93,12 +93,14 @@
                     <tr>
                         <td class="ps-4"><code class="text-primary fw-bold">{{ t.faculty_id or t.employee_id }}</code></td>
                         <td>
-                            <div class="d-flex align-items-center gap-3">
-                                <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0;">
-                                    {{ t.user.full_name[:2].upper() if t.user else 'T' }}
+                            <a href="/teachers/{{ t.id }}" class="text-decoration-none">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;color:#fff;flex-shrink:0;">
+                                        {{ t.user.full_name[:2].upper() if t.user else 'T' }}
+                                    </div>
+                                    <span class="fw-medium text-dark text-hover-primary" style="transition: color 0.2s;">{{ t.user.full_name if t.user else 'Unknown' }}</span>
                                 </div>
-                                <span class="fw-medium text-dark">{{ t.user.full_name if t.user else 'Unknown' }}</span>
-                            </div>
+                            </a>
                         </td>
                         <td>{{ t.department.name if t.department else '—' }}</td>
                         <td>

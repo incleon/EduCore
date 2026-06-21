@@ -129,13 +129,27 @@ def get_student(
     }
 
 
+from fastapi import BackgroundTasks
+from app.services.email_service import send_student_credentials
+
 @students_router.post("", status_code=201)
 def create_student(
     data: StudentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user=Depends(PermissionChecker(["manage_students"])),
 ):
-    return StudentService(db).create(data.model_dump())
+    student, email_data = StudentService(db).create(data.model_dump())
+    if email_data:
+        background_tasks.add_task(
+            send_student_credentials,
+            email_data["student_name"],
+            email_data["personal_email"],
+            email_data["student_id"],
+            email_data["institutional_email"],
+            email_data["generated_password"]
+        )
+    return student
 
 
 @students_router.put("/{student_id}")

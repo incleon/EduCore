@@ -171,12 +171,15 @@ class StudentRepository(BaseRepository[Student]):
             query = query.filter(Student.is_deleted == False)
         return query.first()
 
-    def get_filtered_students(self, course_id: int = None, department_id: int = None) -> List[Student]:
+    def get_filtered_students(self, course_id: int = None, department_id: int = None, search: str = None) -> List[Student]:
         from app.models.department import Department
+        from app.models.user import User
+        from sqlalchemy import or_
         
         query = (
             self._db.query(Student)
             .join(Department, Student.department_id == Department.id)
+            .join(User, Student.user_id == User.id)
             .options(joinedload(Student.user), joinedload(Student.department))
             .filter(Student.is_deleted == False)
         )
@@ -185,6 +188,14 @@ class StudentRepository(BaseRepository[Student]):
             query = query.filter(Department.course_id == course_id)
         if department_id:
             query = query.filter(Student.department_id == department_id)
+        if search:
+            query = query.filter(
+                or_(
+                    User.full_name.ilike(f"%{search}%"),
+                    Student.enrollment_number.ilike(f"%{search}%"),
+                    Student.student_id.ilike(f"%{search}%")
+                )
+            )
             
         return query.order_by(Student.id.desc()).all()
 
@@ -244,7 +255,18 @@ class TeacherRepository(BaseRepository[Teacher]):
         if course_id:
             query = query.filter(Department.course_id == course_id)
         if department_id:
-            query = query.filter(Teacher.department_id == department_id)
+            dept = self._db.query(Department).get(department_id)
+            if dept and dept.course.name == "B.TECH":
+                as_dept = self._db.query(Department).filter(
+                    Department.course_id == dept.course_id,
+                    Department.name.ilike("%Applied Sciences%")
+                ).first()
+                if as_dept:
+                    query = query.filter(Teacher.department_id.in_([department_id, as_dept.id]))
+                else:
+                    query = query.filter(Teacher.department_id == department_id)
+            else:
+                query = query.filter(Teacher.department_id == department_id)
             
         return query.order_by(Teacher.id.desc()).all()
 
@@ -298,10 +320,23 @@ class SubjectRepository(BaseRepository[Subject]):
         )
 
     def get_by_department(self, department_id: int, semester: int = None) -> List[Subject]:
+        from app.models.department import Department
+        
+        dept = self._db.query(Department).get(department_id)
+        dept_ids = [department_id]
+        if dept and getattr(dept, "course", None) and dept.course.name == "B.TECH":
+            if not semester or semester in [1, 2]:
+                as_dept = self._db.query(Department).filter(
+                    Department.course_id == dept.course_id,
+                    Department.name.ilike("%Applied Sciences%")
+                ).first()
+                if as_dept:
+                    dept_ids.append(as_dept.id)
+
         query = (
             self._db.query(Subject)
             .options(joinedload(Subject.department), joinedload(Subject.teacher))
-            .filter(Subject.department_id == department_id, Subject.is_deleted == False)
+            .filter(Subject.department_id.in_(dept_ids), Subject.is_deleted == False)
         )
         if semester:
             query = query.filter(Subject.semester == semester)

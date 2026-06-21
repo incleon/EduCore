@@ -29,6 +29,7 @@ class Subject(BaseModel):
     description = Column(Text, nullable=True)
     credits = Column(Integer, default=3, nullable=False)
     semester = Column(Integer, nullable=False)
+    type = Column(String(50), default="theory", nullable=False)
 
     department_id = Column(
         Integer,

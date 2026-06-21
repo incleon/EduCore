@@ -21,21 +21,30 @@
     <div class="card-body">
         <h5 class="card-title mb-3"><i class="bi bi-funnel me-2"></i>Filter Subjects</h5>
         <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label fw-medium">Select Course</label>
-                <select class="form-select" id="filterCourse" onchange="handleCourseChange()">
+                <select class="form-select" id="filterCourse" onchange="handleCourseChange(); handleFilterChange();">
                     <option value="">-- Select Course --</option>
                     {% for course in courses %}
-                    <option value="{{ course.id }}">{{ course.name }}</option>
+                    <option value="{{ course.id }}" data-duration="{{ course.duration_years }}">{{ course.name }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label fw-medium">Select Department</label>
-                <select class="form-select" id="filterDepartment" onchange="handleDepartmentChange()" disabled>
+                <select class="form-select" id="filterDepartment" onchange="handleFilterChange()" disabled>
                     <option value="">-- Select Department --</option>
                     {% for dept in departments %}
                     <option value="{{ dept.id }}" data-course-id="{{ dept.course_id }}" style="display:none;">{{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-medium">Select Semester</label>
+                <select class="form-select" id="filterSemester" onchange="handleFilterChange()" disabled>
+                    <option value="">-- All Semesters --</option>
+                    {% for i in range(1, 9) %}
+                    <option value="{{ i }}">Semester {{ i }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -60,7 +69,7 @@
                 </thead>
                 <tbody>
                 {% for subject in items %}
-                <tr class="subject-row" data-dept-id="{{ subject.department_id }}" data-course-id="{{ subject.department.course_id if subject.department else '' }}">
+                <tr class="subject-row" data-dept-id="{{ subject.department_id }}" data-course-id="{{ subject.department.course_id if subject.department else '' }}" data-dept-name="{{ subject.department.name if subject.department else '' }}" data-semester="{{ subject.semester }}">
                     <td><code>{{ subject.code }}</code></td>
                     <td class="fw-medium">{{ subject.name }}</td>
                     <td>
@@ -117,7 +126,7 @@
                 <select class="form-select" id="addSubjectCourse" onchange="handleAddSubjectCourseChange()" required>
                     <option value="">Select Course</option>
                     {% for course in courses %}
-                    <option value="{{ course.id }}">{{ course.name }}</option>
+                    <option value="{{ course.id }}" data-duration="{{ course.duration_years }}">{{ course.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -257,16 +266,21 @@ async function handleAddSubject(e) {
 
 <script>
 function handleCourseChange() {
-    const courseId = document.getElementById('filterCourse').value;
-    const deptSelect = document.getElementById('filterDepartment');
-    const tableCard = document.getElementById('subjectsTableCard');
+    const courseSelect = document.getElementById('filterCourse');
+    const courseId = courseSelect.value;
+    const selectedOpt = courseSelect.options[courseSelect.selectedIndex];
+    const maxSemesters = selectedOpt ? parseInt(selectedOpt.dataset.duration || 0) * 2 : 8;
     
-    // Reset department selection
+    const deptSelect = document.getElementById('filterDepartment');
+    const semSelect = document.getElementById('filterSemester');
+    
+    // Reset selections
     deptSelect.value = "";
-    tableCard.style.display = 'none';
+    semSelect.value = "";
     
     if (courseId) {
         deptSelect.disabled = false;
+        semSelect.disabled = false;
         // Show only departments belonging to this course
         Array.from(deptSelect.options).forEach(opt => {
             if (opt.value === "") {
@@ -277,23 +291,58 @@ function handleCourseChange() {
                 opt.style.display = 'none';
             }
         });
+        
+        // Populate specific number of semesters
+        semSelect.innerHTML = '<option value="">-- All Semesters --</option>';
+        for(let i = 1; i <= maxSemesters; i++) {
+            semSelect.innerHTML += `<option value="${i}">Semester ${i}</option>`;
+        }
     } else {
         deptSelect.disabled = true;
+        semSelect.disabled = true;
+        
+        semSelect.innerHTML = '<option value="">-- All Semesters --</option>';
+        for(let i = 1; i <= 8; i++) {
+            semSelect.innerHTML += `<option value="${i}">Semester ${i}</option>`;
+        }
     }
 }
 
-function handleDepartmentChange() {
-    const deptId = document.getElementById('filterDepartment').value;
+function handleFilterChange() {
+    const deptSelect = document.getElementById('filterDepartment');
+    const deptId = deptSelect.value;
+    const selectedOpt = deptSelect.options[deptSelect.selectedIndex];
+    const selectedCourseId = selectedOpt ? selectedOpt.dataset.courseId : null;
+    
+    const semId = document.getElementById('filterSemester').value;
+    
     const tableCard = document.getElementById('subjectsTableCard');
     const noSubjectsRow = document.getElementById('noSubjectsRow');
     
     if (deptId) {
         tableCard.style.display = 'block';
-        // Filter rows by department
+        // Filter rows by department and semester
         const rows = document.querySelectorAll('.subject-row');
         let hasVisible = false;
         rows.forEach(row => {
-            if (row.dataset.deptId === deptId) {
+            const rowDeptId = row.dataset.deptId;
+            const rowCourseId = row.dataset.courseId;
+            const rowDeptName = row.dataset.deptName;
+            const rowSemester = row.dataset.semester;
+            
+            let isDeptMatch = (rowDeptId === deptId);
+            
+            // Also show Applied Sciences common subjects if they belong to the same course
+            if (!isDeptMatch && rowDeptName && rowDeptName.toLowerCase().includes('applied sciences') && rowCourseId === selectedCourseId) {
+                isDeptMatch = true;
+            }
+            
+            let isSemMatch = true;
+            if (semId) {
+                isSemMatch = (rowSemester === semId);
+            }
+            
+            if (isDeptMatch && isSemMatch) {
                 row.style.display = '';
                 hasVisible = true;
             } else {
@@ -310,13 +359,19 @@ function handleDepartmentChange() {
 }
 
 function handleAddSubjectCourseChange() {
-    const courseId = document.getElementById('addSubjectCourse').value;
+    const courseSelect = document.getElementById('addSubjectCourse');
+    const courseId = courseSelect.value;
+    const selectedOpt = courseSelect.options[courseSelect.selectedIndex];
+    const maxSemesters = selectedOpt ? parseInt(selectedOpt.dataset.duration || 0) * 2 : 8;
+    
     const deptSelect = document.getElementById('addSubjectDepartment');
     const teacherSelect = document.getElementById('addSubjectTeacher');
+    const semSelect = document.querySelector('select[name="semester"]');
     
     deptSelect.value = "";
     teacherSelect.value = "";
     teacherSelect.disabled = true;
+    semSelect.value = "";
     
     if (courseId) {
         deptSelect.disabled = false;
@@ -329,8 +384,17 @@ function handleAddSubjectCourseChange() {
                 opt.style.display = 'none';
             }
         });
+        
+        semSelect.innerHTML = '<option value="">Select Semester</option>';
+        for(let i = 1; i <= maxSemesters; i++) {
+            semSelect.innerHTML += `<option value="${i}">Semester ${i}</option>`;
+        }
     } else {
         deptSelect.disabled = true;
+        semSelect.innerHTML = '<option value="">Select Semester</option>';
+        for(let i = 1; i <= 8; i++) {
+            semSelect.innerHTML += `<option value="${i}">Semester ${i}</option>`;
+        }
     }
 }
 

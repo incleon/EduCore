@@ -1,93 +1,244 @@
 {% extends "base.html" %}
 {% block title %}Teacher Dashboard{% endblock %}
-{% block page_title %}Teacher Dashboard{% endblock %}
+{% block page_title %}Faculty Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    background: linear-gradient(135deg, #f0f4fd 0%, #ffffff 100%);
+    background-attachment: fixed;
+    font-family: 'Outfit', sans-serif;
+}
+
+.hero-banner {
+    background: linear-gradient(120deg, #0f172a 0%, #334155 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.4);
+}
+
+.hero-greeting {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    color: #ffffff !important;
+}
+
+.hero-subtext {
+    font-size: 1.1rem;
+    color: #94a3b8;
+    font-weight: 400;
+}
+
+.kpi-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+.kpi-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.kpi-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+    margin-top: 0.5rem;
+}
+
+.kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ent-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ent-panel:hover {
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.08);
+}
+
+.ent-panel-header {
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.ent-panel-header i {
+    color: #10b981;
+    margin-right: 0.8rem;
+    font-size: 1.3rem;
+}
+
+.panel-body {
+    padding: 1.75rem;
+    flex-grow: 1;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    color: #1e293b;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    margin-bottom: 1rem;
+}
+
+.action-btn:hover {
+    background: white;
+    border-color: rgba(16, 185, 129, 0.3);
+    box-shadow: 0 8px 20px -5px rgba(16, 185, 129, 0.15);
+    transform: translateX(5px);
+    color: #10b981;
+}
+
+.action-btn i {
+    font-size: 1.4rem;
+    margin-right: 1rem;
+}
+
+.subject-item {
+    padding: 1rem;
+    border-radius: 12px;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+    transition: transform 0.2s;
+}
+.subject-item:hover {
+    transform: scale(1.02);
+    border-color: #10b981;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
+<div class="hero-banner">
+    <div class="hero-content">
+        <div>
+            <h1 class="hero-greeting">Good Morning, Prof. {{ user.full_name.split()[0] if user.full_name else '' }}!</h1>
+            <p class="hero-subtext">Manage your classes, assignments, and students.</p>
+        </div>
+    </div>
+</div>
+
+<div class="kpi-ribbon">
     {% for stat in dashboard.stats %}
-    <div class="col-xl-4 col-md-6">
-        <div class="stat-card stat-{{ stat.color }}">
-            <div class="stat-icon"><i class="bi {{ stat.icon }}"></i></div>
-            <div class="stat-info"><h3>{{ stat.value }}</h3><p>{{ stat.label }}</p></div>
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-label">{{ stat.label }}</div>
+            <div class="kpi-value">{{ stat.value }}</div>
+        </div>
+        <div class="kpi-icon text-{{ stat.color }}">
+            <i class="bi {{ stat.icon }}"></i>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h6></div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/attendance/mark" class="quick-action">
-                        <i style="background:rgba(34,197,94,0.15);color:var(--accent-green);"><span class="bi bi-calendar-check"></span></i>
-                        Mark Attendance
-                    </a>
-                    <a href="/marks/upload" class="quick-action">
-                        <i class="bg-primary"><span class="bi bi-clipboard-data"></span></i>
-                        Upload Marks
-                    </a>
-                    <a href="/students" class="quick-action">
-                        <i style="background:rgba(59,130,246,0.15);color:var(--accent-blue);"><span class="bi bi-people"></span></i>
-                        View Students
-                    </a>
-                </div>
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-journal-bookmark-fill"></i> My Subjects
+            </div>
+            <div class="panel-body">
+                {% if dashboard.subjects %}
+                    <div class="row g-3">
+                        {% for subject in dashboard.subjects %}
+                        <div class="col-md-6">
+                            <div class="subject-item">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-primary rounded-pill px-3">{{ subject.code }}</span>
+                                    <small class="text-muted fw-bold">Sem {{ subject.semester }}</small>
+                                </div>
+                                <h5 class="fw-bold mb-1">{{ subject.name }}</h5>
+                                <small class="text-muted">{{ subject.department_name }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted opacity-50 mb-3 d-block"></i>
+                        <p class="text-muted fw-medium">No subjects assigned yet.</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
-    <div class="col-lg-7">
-        <div class="card mb-4">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Faculty Information</h6></div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Full Name</div>
-                        <div style="font-size:0.9rem;font-weight:600;color:var(--text-heading);">{{ user.full_name }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Email</div>
-                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.email }}</div>
-                    </div>
-                    {% if user.teacher %}
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Faculty ID</div>
-                        <div style="font-size:0.9rem;"><code class="text-primary fw-bold">{{ user.teacher.faculty_id or user.teacher.employee_id }}</code></div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Department</div>
-                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.teacher.department.name if user.teacher.department else 'N/A' }}</div>
-                    </div>
-                    {% endif %}
-                </div>
+    <div class="col-lg-4">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Faculty Tools
             </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-book me-2"></i>Assigned Subjects</h6></div>
-            <div class="card-body">
-                {% if dashboard.subjects %}
-                <div class="row g-3">
-                    {% for subject in dashboard.subjects %}
-                    <div class="col-md-6">
-                        <div style="padding:16px;background:var(--bg-surface);border:1px solid var(--border-color);border-radius:var(--radius-md);transition:var(--transition);overflow:hidden;">
-                            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-                                <div style="flex:1;min-width:0;">
-                                    <div style="font-weight:600;font-size:0.95rem;color:var(--text-heading);margin-bottom:4px;">{{ subject.name }}</div>
-                                    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;"><code style="background:rgba(255,255,255,0.04);padding:2px 6px;border-radius:3px;">{{ subject.code }}</code></div>
-                                    <div style="font-size:0.75rem;color:var(--text-secondary);display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-                                        <span><i class="bi bi-building" style="margin-right:3px;opacity:0.6;"></i>{{ subject.department_name }}</span>
-                                        <span><i class="bi bi-hourglass" style="margin-right:3px;opacity:0.6;"></i>Sem {{ subject.semester }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state"><i class="bi bi-journal-x"></i><p>No subjects assigned yet</p></div>
-                {% endif %}
+            <div class="panel-body p-3">
+                <a href="/attendance/mark" class="action-btn">
+                    <i class="bi bi-calendar-check text-success"></i> Mark Attendance
+                </a>
+                <a href="/marks/upload" class="action-btn">
+                    <i class="bi bi-file-earmark-arrow-up text-primary"></i> Upload Marks
+                </a>
+                <a href="/library" class="action-btn">
+                    <i class="bi bi-book text-warning"></i> Library Search
+                </a>
             </div>
         </div>
     </div>

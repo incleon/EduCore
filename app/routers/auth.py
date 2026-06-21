@@ -59,3 +59,21 @@ def get_current_user_info(current_user=Depends(get_current_user)):
         "roles": current_user.roles,
         "permissions": current_user.permissions,
     }
+
+
+from app.schemas.auth import PasswordChangeRequest
+
+@router.put("/change-password")
+def change_password(
+    data: PasswordChangeRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Change the current user's password."""
+    auth_service = AuthService(db)
+    auth_service.change_password(
+        user_id=current_user.id,
+        current_password=data.current_password,
+        new_password=data.new_password
+    )
+    return {"message": "Password updated successfully"}

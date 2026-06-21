@@ -90,6 +90,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- Credentials Information -->
+        {% if student.initial_password %}
+        <div class="card shadow-sm border-0 mt-4" style="background: var(--bg-card);">
+            <div class="card-header border-bottom py-3" style="background: transparent;">
+                <h6 class="mb-0 fw-semibold text-danger"><i class="bi bi-shield-lock me-2"></i>Initial Credentials</h6>
+            </div>
+            <div class="card-body p-4 bg-light rounded-bottom">
+                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                    <div>
+                        <strong>Admin Only View:</strong> These credentials were auto-generated during enrollment. Please share them securely with the student if they did not receive the automated email.
+                    </div>
+                </div>
+                <div class="row g-4 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Institutional Email</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control fw-bold" value="{{ student.user.email if student.user else 'N/A' }}" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Generated Password</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control fw-bold font-monospace" value="{{ student.initial_password }}" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

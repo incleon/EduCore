@@ -1,65 +1,268 @@
 {% extends "base.html" %}
 {% block title %}HOD Dashboard{% endblock %}
-{% block page_title %}HOD Dashboard{% endblock %}
+{% block page_title %}Department Head Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    background: linear-gradient(135deg, #f0f4fd 0%, #ffffff 100%);
+    background-attachment: fixed;
+    font-family: 'Outfit', sans-serif;
+}
+
+.hero-banner {
+    background: linear-gradient(120deg, #581c87 0%, #7e22ce 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -10px rgba(126, 34, 206, 0.4);
+}
+
+.hero-greeting {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    color: #ffffff !important;
+}
+
+.hero-subtext {
+    font-size: 1.1rem;
+    color: #e9d5ff;
+    font-weight: 400;
+}
+
+.kpi-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+.kpi-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.kpi-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+    margin-top: 0.5rem;
+}
+
+.kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ent-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ent-panel:hover {
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.08);
+}
+
+.ent-panel-header {
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.ent-panel-header i {
+    color: #a855f7;
+    margin-right: 0.8rem;
+    font-size: 1.3rem;
+}
+
+.panel-body {
+    padding: 1.75rem;
+    flex-grow: 1;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    color: #1e293b;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    margin-bottom: 1rem;
+}
+
+.action-btn:hover {
+    background: white;
+    border-color: rgba(168, 85, 247, 0.3);
+    box-shadow: 0 8px 20px -5px rgba(168, 85, 247, 0.15);
+    transform: translateX(5px);
+    color: #a855f7;
+}
+
+.action-btn i {
+    font-size: 1.4rem;
+    margin-right: 1rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
+<div class="hero-banner">
+    <div class="hero-content">
+        <div>
+            <h1 class="hero-greeting">{{ dashboard.department_name }} Department</h1>
+            <p class="hero-subtext">Welcome back, Head of Department. Here is your overview.</p>
+        </div>
+    </div>
+</div>
+
+<div class="kpi-ribbon">
     {% for stat in dashboard.stats %}
-    <div class="col-xl-4 col-md-6">
-        <div class="stat-card stat-{{ stat.color }}">
-            <div class="stat-icon"><i class="bi {{ stat.icon }}"></i></div>
-            <div class="stat-info"><h3>{{ stat.value }}</h3><p>{{ stat.label }}</p></div>
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-label">{{ stat.label }}</div>
+            <div class="kpi-value">{{ stat.value }}</div>
+        </div>
+        <div class="kpi-icon text-{{ stat.color }}">
+            <i class="bi {{ stat.icon }}"></i>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h6></div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/students" class="quick-action">
-                        <i class="bg-primary"><span class="bi bi-people"></span></i>
-                        View Students
-                    </a>
-                    <a href="/teachers" class="quick-action">
-                        <i style="background:rgba(34,197,94,0.15);color:var(--accent-green);"><span class="bi bi-person-badge"></span></i>
-                        View Teachers
-                    </a>
-                    <a href="/courses" class="quick-action">
-                        <i style="background:rgba(59,130,246,0.15);color:var(--accent-blue);"><span class="bi bi-journal-bookmark"></span></i>
-                        Manage Courses
-                    </a>
-                    <a href="/attendance" class="quick-action">
-                        <i style="background:rgba(245,158,11,0.15);color:var(--accent-amber);"><span class="bi bi-calendar-check"></span></i>
-                        Attendance Reports
-                    </a>
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-bar-chart-fill"></i> Department Demographics
+            </div>
+            <div class="panel-body d-flex justify-content-center align-items-center">
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="deptChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-building me-2"></i>Department Overview</h6></div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Department</div>
-                        <div style="font-size:1rem;font-weight:600;color:var(--text-heading);">{{ dashboard.department_name }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Total Teachers</div>
-                        <div style="font-size:1rem;font-weight:600;color:var(--accent-green);">{{ dashboard.total_teachers }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Total Students</div>
-                        <div style="font-size:1rem;font-weight:600;color:var(--accent-primary-light);">{{ dashboard.total_students }}</div>
-                    </div>
-                </div>
+    <div class="col-lg-4">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-gear-fill text-secondary"></i> Quick Management
+            </div>
+            <div class="panel-body p-3">
+                <a href="/teachers" class="action-btn">
+                    <i class="bi bi-person-badge text-primary"></i> View Faculty
+                </a>
+                <a href="/students" class="action-btn">
+                    <i class="bi bi-people text-success"></i> View Students
+                </a>
+                <a href="/subjects" class="action-btn">
+                    <i class="bi bi-book text-warning"></i> Manage Subjects
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<input type="hidden" id="totTeachers" value="{{ dashboard.total_teachers }}">
+<input type="hidden" id="totStudents" value="{{ dashboard.total_students }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    
+    const totTeachers = parseInt(document.getElementById('totTeachers').value) || 0;
+    const totStudents = parseInt(document.getElementById('totStudents').value) || 0;
+    
+    const ctx = document.getElementById('deptChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Faculty Members', 'Enrolled Students'],
+            datasets: [{
+                label: 'Count',
+                data: [totTeachers, totStudents],
+                backgroundColor: [
+                    'rgba(168, 85, 247, 0.8)', // Purple
+                    'rgba(59, 130, 246, 0.8)'  // Blue
+                ],
+                borderRadius: 8,
+                barPercentage: 0.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                x: { grid: { display: false } }
+            },
+            animation: { duration: 1500, easing: 'easeOutBounce' }
+        }
+    });
+});
+</script>
 {% endblock %}

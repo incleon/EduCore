@@ -71,6 +71,102 @@
                 </div>
             </div>
         </div>
+
+        <!-- Security / Change Password -->
+        <div class="card shadow-sm border-0 mt-4" style="background: var(--bg-card);">
+            <div class="card-header border-bottom py-3 d-flex justify-content-between align-items-center" style="background: transparent;">
+                <h6 class="mb-0 fw-semibold text-primary"><i class="bi bi-shield-lock me-2"></i>Security Settings</h6>
+                <button class="btn btn-sm btn-outline-primary shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#securitySettingsCollapse" aria-expanded="false" aria-controls="securitySettingsCollapse">
+                    <i class="bi bi-key me-1"></i>Change Password
+                </button>
+            </div>
+            <div class="collapse" id="securitySettingsCollapse">
+                <div class="card-body p-4">
+                    <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+                        <div id="passwordAlert" class="alert d-none"></div>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label text-muted mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Current Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required minlength="6">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">New Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required minlength="8">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-muted mb-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Confirm Password <span class="text-danger">*</span></label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
+                            </div>
+                            <div class="col-12 text-end mt-4">
+                                <button type="submit" class="btn btn-primary shadow-sm" id="changePasswordBtn">
+                                    Update Password
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<script>
+async function handleChangePassword(e) {
+    e.preventDefault();
+    const btn = document.getElementById('changePasswordBtn');
+    const alertBox = document.getElementById('passwordAlert');
+    
+    const current_password = document.getElementById('current_password').value;
+    const new_password = document.getElementById('new_password').value;
+    const confirm_password = document.getElementById('confirm_password').value;
+    
+    // Hide previous alert
+    alertBox.classList.add('d-none');
+    alertBox.className = 'alert d-none';
+    
+    if (new_password !== confirm_password) {
+        alertBox.textContent = "New password and Confirm password do not match.";
+        alertBox.classList.remove('d-none');
+        alertBox.classList.add('alert-danger');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Updating...';
+    
+    try {
+        const response = await fetch('/api/auth/change-password', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                current_password: current_password,
+                new_password: new_password,
+                confirm_password: confirm_password
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alertBox.textContent = "Password updated successfully!";
+            alertBox.classList.remove('d-none');
+            alertBox.classList.add('alert-success');
+            document.getElementById('changePasswordForm').reset();
+        } else {
+            alertBox.textContent = result.detail || "Failed to update password.";
+            alertBox.classList.remove('d-none');
+            alertBox.classList.add('alert-danger');
+        }
+    } catch (err) {
+        alertBox.textContent = "An error occurred. Please try again.";
+        alertBox.classList.remove('d-none');
+        alertBox.classList.add('alert-danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Update Password';
+    }
+}
+</script>
 {% endblock %}

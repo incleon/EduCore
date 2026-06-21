@@ -41,3 +41,4 @@ httpx==0.28.1
 
 # Utilities
 python-dateutil==2.9.0
+fastapi-mail==1.4.1

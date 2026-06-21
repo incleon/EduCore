@@ -1,48 +1,206 @@
 {% extends "base.html" %}
 {% block title %}Add Student{% endblock %}
-{% block page_title %}Add New Student{% endblock %}
+{% block page_title %}Enroll New Student{% endblock %}
 
 {% block content %}
-<div class="card shadow-sm">
-    <div class="card-body">
+<div class="row justify-content-center">
+    <div class="col-lg-10">
         <form id="createStudentForm" onsubmit="handleCreateStudent(event)">
-            <div class="row g-3">
-                <div class="col-md-6"><label class="form-label">Full Name</label><input type="text" class="form-control" name="full_name" required></div>
-                <div class="col-md-6"><label class="form-label">Email</label><input type="email" class="form-control" name="email" required></div>
-                <div class="col-md-6"><label class="form-label">Username</label><input type="text" class="form-control" name="username" required></div>
-                <div class="col-md-6"><label class="form-label">Password</label><input type="password" class="form-control" name="password" value="student123" required></div>
-                <div class="col-md-6"><label class="form-label">Enrollment Number</label><input type="text" class="form-control" name="enrollment_number" required></div>
-                <div class="col-md-6">
-                    <label class="form-label">Department</label>
-                    <select class="form-select" name="department_id" required>
-                        <option value="">Select Department</option>
-                        {% for dept in departments %}<option value="{{ dept.id }}">{{ dept.name }}</option>{% endfor %}
-                    </select>
+            
+            <!-- Personal Information Section -->
+            <div class="card shadow-sm mb-4 border-0 rounded-3">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="text-primary mb-0"><i class="bi bi-person-badge me-2"></i>Personal Information</h5>
                 </div>
-                <div class="col-md-4"><label class="form-label">Phone</label><input type="text" class="form-control" name="phone"></div>
-                <div class="col-md-4"><label class="form-label">Semester</label><input type="number" class="form-control" name="semester" value="1" min="1" max="8"></div>
-                <div class="col-md-4"><label class="form-label">Section</label><input type="text" class="form-control" name="section" value="A"></div>
-                <div class="col-md-4"><label class="form-label">Admission Date</label><input type="date" class="form-control" name="admission_date" required></div>
-                <div class="col-md-4"><label class="form-label">Student ID</label><input type="text" class="form-control" placeholder="Auto-generated on save" disabled readonly></div>
-                <div class="col-md-4"><label class="form-label">Guardian Name</label><input type="text" class="form-control" name="guardian_name"></div>
-                <div class="col-md-6"><label class="form-label">Guardian Phone</label><input type="text" class="form-control" name="guardian_phone"></div>
-                <div class="col-md-6"><label class="form-label">Blood Group</label><input type="text" class="form-control" name="blood_group"></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">First Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="first_name" placeholder="John" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Middle Name</label>
+                            <input type="text" class="form-control" name="middle_name" placeholder="Robert">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Last Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="last_name" placeholder="Doe" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Date of Birth <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="date_of_birth" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Gender</label>
+                            <select class="form-select" name="gender">
+                                <option value="">Select Gender</option>
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Blood Group</label>
+                            <select class="form-select" name="blood_group">
+                                <option value="">Select</option>
+                                <option value="A+">A+</option><option value="A-">A-</option>
+                                <option value="B+">B+</option><option value="B-">B-</option>
+                                <option value="O+">O+</option><option value="O-">O-</option>
+                                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg me-2"></i>Create Student</button>
-                <a href="/students" class="btn btn-outline-secondary ms-2">Cancel</a>
+
+            <!-- Contact & Family Information Section -->
+            <div class="card shadow-sm mb-4 border-0 rounded-3">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="text-primary mb-0"><i class="bi bi-telephone me-2"></i>Contact & Family Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Personal Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="personal_email" placeholder="student@example.com" required>
+                            <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Credentials will be sent here.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone" placeholder="+1 234 567 8900">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Father's Name</label>
+                            <input type="text" class="form-control" name="father_name" placeholder="Father's Full Name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Mother's Name</label>
+                            <input type="text" class="form-control" name="mother_name" placeholder="Mother's Full Name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Local Guardian Name</label>
+                            <input type="text" class="form-control" name="guardian_name" placeholder="If applicable">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Local Guardian Phone</label>
+                            <input type="tel" class="form-control" name="guardian_phone" placeholder="Emergency Contact">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Academic Information Section -->
+            <div class="card shadow-sm mb-4 border-0 rounded-3">
+                <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                    <h5 class="text-primary mb-0"><i class="bi bi-book me-2"></i>Academic Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Course <span class="text-danger">*</span></label>
+                            <select class="form-select" id="course_id" required onchange="filterDepartments()">
+                                <option value="">Select Course</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Department <span class="text-danger">*</span></label>
+                            <select class="form-select" name="department_id" id="department_id" required disabled>
+                                <option value="">Select Department</option>
+                                {% for dept in departments %}
+                                <option value="{{ dept.id }}" data-course-id="{{ dept.course_id }}">{{ dept.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Admission Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="admission_date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Semester</label>
+                            <input type="number" class="form-control" name="semester" value="1" min="1" max="8">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small text-uppercase fw-bold">Section</label>
+                            <input type="text" class="form-control" name="section" value="A">
+                        </div>
+                        <div class="col-12 mt-4 text-center">
+                            <div class="alert alert-info border-0 shadow-sm rounded-3 py-2 text-start d-inline-flex align-items-center">
+                                <i class="bi bi-robot fs-4 me-3 text-info"></i>
+                                <div>
+                                    <strong>Automated Provisioning:</strong> Student ID, Enrollment Number, Institutional Email, and Password will be automatically generated and securely dispatched to the student's personal email upon submission.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mb-5">
+                <a href="/students" class="btn btn-light px-4 me-2 shadow-sm">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4 shadow-sm" id="submitBtn">
+                    <i class="bi bi-check-circle me-2"></i>Enroll Student
+                </button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
+function filterDepartments() {
+    const courseId = document.getElementById('course_id').value;
+    const deptSelect = document.getElementById('department_id');
+    const options = deptSelect.querySelectorAll('option');
+    
+    // Reset selection
+    deptSelect.value = "";
+    
+    if (!courseId) {
+        deptSelect.disabled = true;
+        return;
+    }
+    
+    deptSelect.disabled = false;
+    let hasValidOption = false;
+    
+    options.forEach(opt => {
+        // Always show the placeholder
+        if (opt.value === "") {
+            opt.style.display = 'block';
+            return;
+        }
+        
+        if (opt.getAttribute('data-course-id') === courseId) {
+            opt.style.display = 'block';
+            hasValidOption = true;
+        } else {
+            opt.style.display = 'none';
+        }
+    });
+}
+
 async function handleCreateStudent(e) {
     e.preventDefault();
     const form = e.target;
+    const btn = document.getElementById('submitBtn');
+    
+    // UI Loading state
+    const originalBtnContent = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing...';
+    btn.disabled = true;
+
     const data = Object.fromEntries(new FormData(form));
     data.department_id = parseInt(data.department_id);
     data.semester = parseInt(data.semester || 1);
+    
+    // Clean empty strings for optional fields to avoid validation errors if they expect None
+    for (let key in data) {
+        if (data[key] === "") {
+            data[key] = null;
+        }
+    }
 
     try {
         const res = await fetch('/api/students', {
@@ -50,12 +208,19 @@ async function handleCreateStudent(e) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data),
         });
-        if (res.ok) { window.location.href = '/students'; }
-        else {
+        if (res.ok) { 
+            window.location.href = '/students'; 
+        } else {
             const err = await res.json();
             showFlash(err.detail || 'Failed to create student', 'danger');
+            btn.innerHTML = originalBtnContent;
+            btn.disabled = false;
         }
-    } catch(e) { showFlash('Connection error', 'danger'); }
+    } catch(err) { 
+        showFlash('Connection error', 'danger'); 
+        btn.innerHTML = originalBtnContent;
+        btn.disabled = false;
+    }
 }
 </script>
 {% endblock %}

@@ -60,7 +60,7 @@ PERMISSIONS = [
 ROLE_PERMISSIONS = {
     "admin": [p[0] for p in PERMISSIONS],  # ALL permissions
     "hod": [
-        "view_departments", "manage_departments", "view_students",
+        "view_students",
         "manage_students", "view_teachers",
         "view_subjects", "manage_subjects", "view_attendance", "view_marks",
         "view_reports", "view_dashboard", "manage_profile",

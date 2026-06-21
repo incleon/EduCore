@@ -1,79 +1,300 @@
 {% extends "base.html" %}
 {% block title %}Student Dashboard{% endblock %}
-{% block page_title %}Student Dashboard{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+body {
+    background: linear-gradient(135deg, #f0f4fd 0%, #ffffff 100%);
+    background-attachment: fixed;
+    font-family: 'Outfit', sans-serif;
+}
+
+.hero-banner {
+    background: linear-gradient(120deg, #1e3a8a 0%, #3b82f6 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.4);
+}
+
+.hero-greeting {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    color: #ffffff !important;
+}
+
+.hero-subtext {
+    font-size: 1.1rem;
+    color: #bfdbfe;
+    font-weight: 400;
+}
+
+.kpi-ribbon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.kpi-card {
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+.kpi-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.kpi-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1;
+    margin-top: 0.5rem;
+}
+
+.kpi-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ent-panel {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ent-panel:hover {
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.08);
+}
+
+.ent-panel-header {
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.ent-panel-header i {
+    color: #3b82f6;
+    margin-right: 0.8rem;
+    font-size: 1.3rem;
+}
+
+.panel-body {
+    padding: 1.75rem;
+    flex-grow: 1;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 16px;
+    color: #1e293b;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    margin-bottom: 1rem;
+}
+
+.action-btn:hover {
+    background: white;
+    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 20px -5px rgba(59, 130, 246, 0.15);
+    transform: translateX(5px);
+    color: #3b82f6;
+}
+
+.action-btn i {
+    font-size: 1.4rem;
+    margin-right: 1rem;
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row g-4 mb-4">
+<div class="hero-banner">
+    <div class="hero-content">
+        <div>
+            <h1 class="hero-greeting">Welcome back, {{ user.full_name.split()[0] if user.full_name else 'Student' }}!</h1>
+            <p class="hero-subtext">Stay on top of your attendance and academics today.</p>
+        </div>
+    </div>
+</div>
+
+<div class="kpi-ribbon">
     {% for stat in dashboard.stats %}
-    <div class="col-xl-4 col-md-6">
-        <div class="stat-card stat-{{ stat.color }}">
-            <div class="stat-icon"><i class="bi {{ stat.icon }}"></i></div>
-            <div class="stat-info"><h3>{{ stat.value }}</h3><p>{{ stat.label }}</p></div>
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-label">{{ stat.label }}</div>
+            <div class="kpi-value">{{ stat.value }}</div>
+        </div>
+        <div class="kpi-icon text-{{ stat.color }}">
+            <i class="bi {{ stat.icon }}"></i>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="row g-4">
+<div class="row g-4 mb-4">
     <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Links</h6></div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a href="/attendance" class="quick-action">
-                        <i style="background:rgba(34,197,94,0.15);color:var(--accent-green);"><span class="bi bi-calendar-check"></span></i>
-                        My Attendance
-                    </a>
-                    <a href="/marks" class="quick-action">
-                        <i class="bg-primary"><span class="bi bi-clipboard-data"></span></i>
-                        My Marks
-                    </a>
-                    <a href="/fees" class="quick-action">
-                        <i style="background:rgba(245,158,11,0.15);color:var(--accent-amber);"><span class="bi bi-cash-stack"></span></i>
-                        Fee Details
-                    </a>
-                    <a href="/library" class="quick-action">
-                        <i style="background:rgba(236,72,153,0.15);color:var(--accent-pink);"><span class="bi bi-book"></span></i>
-                        Library
-                    </a>
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-pie-chart-fill"></i> Attendance Overview
+            </div>
+            <div class="panel-body d-flex justify-content-center align-items-center">
+                <div style="position: relative; height: 250px; width: 100%;">
+                    <canvas id="attendanceChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="card-header"><h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Student Information</h6></div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Full Name</div>
-                        <div style="font-size:0.9rem;font-weight:600;color:var(--text-heading);">{{ user.full_name }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Email</div>
-                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.email }}</div>
-                    </div>
-                    {% if user.student %}
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Student ID</div>
-                        <div style="font-size:0.9rem;"><code>{{ user.student.student_id or user.student.enrollment_number }}</code></div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Semester</div>
-                        <div style="font-size:0.9rem;font-weight:600;color:var(--text-heading);">{{ user.student.semester }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Department</div>
-                        <div style="font-size:0.9rem;color:var(--text-primary);">{{ user.student.department.name if user.student.department else 'N/A' }}</div>
-                    </div>
-                    <div class="col-6">
-                        <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:4px;">Section</div>
-                        <div style="font-size:0.9rem;font-weight:600;color:var(--text-heading);">{{ user.student.section or 'N/A' }}</div>
-                    </div>
-                    {% endif %}
+    <div class="col-lg-4">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-person-lines-fill"></i> My Profile
+            </div>
+            <div class="panel-body">
+                <div class="mb-3">
+                    <small class="text-muted fw-bold text-uppercase" style="letter-spacing: 1px;">Student ID</small>
+                    <div class="fs-5 fw-bold text-dark">{{ user.student.student_id or user.student.enrollment_number if user.student else 'N/A' }}</div>
                 </div>
+                <div class="mb-3">
+                    <small class="text-muted fw-bold text-uppercase" style="letter-spacing: 1px;">Department</small>
+                    <div class="fs-5 fw-bold text-dark">{{ user.student.department.name if user.student and user.student.department else 'N/A' }}</div>
+                </div>
+                <div class="mb-3">
+                    <small class="text-muted fw-bold text-uppercase" style="letter-spacing: 1px;">Semester</small>
+                    <div class="fs-5 fw-bold text-dark">{{ user.student.semester if user.student else 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="ent-panel">
+            <div class="ent-panel-header">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Quick Actions
+            </div>
+            <div class="panel-body p-3">
+                <a href="/attendance" class="action-btn">
+                    <i class="bi bi-calendar-check text-success"></i> View Attendance
+                </a>
+                <a href="/marks" class="action-btn">
+                    <i class="bi bi-journal-text text-primary"></i> Report Card
+                </a>
+                <a href="/fees" class="action-btn">
+                    <i class="bi bi-cash-stack text-warning"></i> Fee Receipts
+                </a>
             </div>
         </div>
     </div>
 </div>
+
+<input type="hidden" id="attendancePct" value="{{ dashboard.attendance_percentage }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    
+    const attPct = parseFloat(document.getElementById('attendancePct').value) || 0;
+    const missingPct = Math.max(0, 100 - attPct);
+    
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Attended', 'Missed'],
+            datasets: [{
+                data: [attPct, missingPct],
+                backgroundColor: [
+                    'rgba(16, 185, 129, 0.9)', // Emerald
+                    'rgba(244, 63, 94, 0.2)'   // Rose faded
+                ],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 14, weight: 'bold' },
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            animation: { animateScale: true, animateRotate: true }
+        },
+        plugins: [{
+            id: 'textCenter',
+            beforeDraw: function(chart) {
+                var width = chart.width, height = chart.height, ctx = chart.ctx;
+                ctx.restore();
+                var fontSize = (height / 100).toFixed(2);
+                ctx.font = "bold " + fontSize + "em Outfit";
+                ctx.textBaseline = "middle";
+                ctx.fillStyle = "#0f172a";
+                var text = attPct + "%",
+                    textX = Math.round((width - ctx.measureText(text).width) / 2),
+                    textY = height / 2;
+                ctx.fillText(text, textX, textY);
+                ctx.save();
+            }
+        }]
+    });
+});
+</script>
 {% endblock %}

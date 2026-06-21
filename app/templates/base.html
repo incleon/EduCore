@@ -58,8 +58,10 @@
                         <i class="bi bi-chevron-down" style="font-size: 0.75rem; width: auto; opacity: 0.7;"></i>
                     </a>
                     <ul class="collapse list-unstyled {% if '/teachers' in request.url.path or '/hods' in request.url.path %}show{% endif %}" id="facultySubmenu">
+                        {% if 'admin' in roles %}
                         <li><a href="/hods" class="{% if '/hods' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
                             <i class="bi bi-award"></i><span>HODs</span></a></li>
+                        {% endif %}
                         <li><a href="/teachers" class="{% if '/teachers' in request.url.path %}active{% endif %}" style="padding-left: 45px;">
                             <i class="bi bi-people"></i><span>Teachers</span></a></li>
                     </ul>
@@ -123,7 +125,7 @@
                     <div class="sidebar-avatar">{{ user.full_name[0] | upper }}</div>
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:0.82rem;font-weight:600;color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ user.full_name }}</div>
-                        <div style="font-size:0.72rem;color:var(--text-muted);">{{ roles[0] | default('user') | title }}</div>
+                        <div style="font-size:0.72rem;color:var(--text-muted);">{{ primary_role | default('user') | title }}</div>
                     </div>
                 </div>
             </div>
@@ -143,7 +145,7 @@
                     <a href="/notifications" class="btn btn-link p-0 position-relative" style="color: var(--text-secondary); font-size: 1.1rem;">
                         <i class="bi bi-bell"></i>
                     </a>
-                    <span class="role-badge">{{ roles[0] | default('user') | title }}</span>
+                    <span class="role-badge">{{ primary_role | default('user') | title }}</span>
                     <div class="dropdown">
                         <button class="btn btn-link dropdown-toggle user-menu p-0" data-bs-toggle="dropdown" style="font-size:0.9rem;">
                             <i class="bi bi-person-circle me-1"></i>

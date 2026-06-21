@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = Field(default=10, description="Default page size")
     MAX_PAGE_SIZE: int = Field(default=100, description="Maximum page size")
 
+    # ── Email ────────────────────────────────────────────────
+    MAIL_USERNAME: str = Field(default="info.educorecms@gmail.com", description="SMTP Username")
+    MAIL_PASSWORD: str = Field(default="", description="SMTP App Password")
+
     # ── Class-level configuration ────────────────────────────
     model_config = {
         "env_file": ".env",

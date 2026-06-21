@@ -10,6 +10,7 @@ class SubjectCreate(BaseModel):
     description: Optional[str] = None
     credits: int = 3
     semester: int
+    type: str = "theory"
     department_id: int
     teacher_id: Optional[int] = None
 
@@ -20,6 +21,7 @@ class SubjectUpdate(BaseModel):
     description: Optional[str] = None
     credits: Optional[int] = None
     semester: Optional[int] = None
+    type: Optional[str] = None
     department_id: Optional[int] = None
     teacher_id: Optional[int] = None
 
@@ -31,6 +33,7 @@ class SubjectResponse(BaseModel):
     description: Optional[str] = None
     credits: int
     semester: int
+    type: str
     department_id: int
     department_name: Optional[str] = None
     teacher_id: Optional[int] = None

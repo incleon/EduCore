@@ -77,3 +77,19 @@ class AuthService:
         if not user:
             raise NotFoundException("User", user_id)
         return user
+
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> bool:
+        """
+        Change user's password.
+        Validates current password, then hashes and saves the new password.
+        """
+        user = self.get_user_by_id(user_id)
+        
+        if not PasswordHasher.verify_password(current_password, user.hashed_password):
+            logger.warning(f"Failed password change attempt for user_id: {user_id}")
+            raise UnauthorizedException(detail="Incorrect current password")
+            
+        user.hashed_password = PasswordHasher.hash_password(new_password)
+        self._db.commit()
+        logger.info(f"Password changed successfully for user_id: {user_id}")
+        return True

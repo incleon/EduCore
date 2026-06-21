@@ -81,7 +81,11 @@ class Student(BaseModel):
     section = Column(String(10), nullable=True)
     guardian_name = Column(String(255), nullable=True)
     guardian_phone = Column(String(20), nullable=True)
+    father_name = Column(String(255), nullable=True)
+    mother_name = Column(String(255), nullable=True)
     blood_group = Column(String(5), nullable=True)
+    personal_email = Column(String(255), nullable=True, doc="Student's personal email for notifications")
+    initial_password = Column(String(255), nullable=True)
     status = Column(
         SAEnum(EnrollmentStatus),
         default=EnrollmentStatus.ACTIVE,

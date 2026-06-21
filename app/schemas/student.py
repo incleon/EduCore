@@ -10,14 +10,14 @@ from datetime import date, datetime
 
 class StudentCreate(BaseModel):
     # User fields
-    email: str
-    username: str
-    password: str = Field(..., min_length=8)
-    full_name: str
+    email: Optional[str] = None
+    first_name: str
+    middle_name: Optional[str] = None
+    last_name: str
     phone: Optional[str] = None
     gender: Optional[str] = None
     # Student fields
-    enrollment_number: str
+    personal_email: str
     department_id: int
     date_of_birth: Optional[date] = None
     admission_date: Optional[date] = None
@@ -25,6 +25,8 @@ class StudentCreate(BaseModel):
     section: Optional[str] = None
     guardian_name: Optional[str] = None
     guardian_phone: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     blood_group: Optional[str] = None
 
 
@@ -46,6 +48,7 @@ class StudentResponse(BaseModel):
     enrollment_number: str
     full_name: Optional[str] = None
     email: Optional[str] = None
+    personal_email: Optional[str] = None
     phone: Optional[str] = None
     department_name: Optional[str] = None
     department_id: Optional[int] = None
@@ -55,6 +58,8 @@ class StudentResponse(BaseModel):
     admission_date: Optional[date] = None
     guardian_name: Optional[str] = None
     guardian_phone: Optional[str] = None
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
     blood_group: Optional[str] = None
     status: Optional[str] = None
     profile_image: Optional[str] = None

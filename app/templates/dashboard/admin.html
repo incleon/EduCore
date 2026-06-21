@@ -1,274 +1,585 @@
 {% extends "base.html" %}
 {% block title %}Admin Dashboard{% endblock %}
-{% block page_title %}Admin Overview{% endblock %}
+{% block page_title %}Platform Analytics{% endblock %}
 
 {% block extra_css %}
 <style>
-/* ── ENTERPRISE SAAS DASHBOARD STYLES ───────────────────────────────────── */
+/* ── ULTIMATE ENTERPRISE SAAS DASHBOARD STYLES ──────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-/* KPI Ribbon */
+:root {
+    --bg-mesh: linear-gradient(135deg, #f0f4fd 0%, #ffffff 100%);
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.8);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+    
+    --brand-primary: #4f46e5;
+    --brand-secondary: #ec4899;
+    --brand-tertiary: #14b8a6;
+    
+    --glow-primary: rgba(79, 70, 229, 0.4);
+    --glow-secondary: rgba(236, 72, 153, 0.4);
+}
+
+body {
+    background: var(--bg-mesh);
+    background-attachment: fixed;
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Welcome Hero */
+.hero-banner {
+    background: linear-gradient(120deg, #1e1b4b 0%, #312e81 100%);
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    color: white;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -10px var(--glow-primary);
+}
+
+.hero-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 60%);
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hero-greeting {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.02em;
+    color: #ffffff !important;
+}
+
+.hero-subtext {
+    font-size: 1.1rem;
+    color: #a5b4fc;
+    font-weight: 400;
+}
+
+.live-clock-container {
+    text-align: right;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.live-time {
+    font-size: 2rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: 1px;
+}
+
+.live-date {
+    font-size: 0.9rem;
+    color: #e0e7ff;
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Glassmorphic KPI Ribbon */
 .kpi-ribbon {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .kpi-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.kpi-info {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: var(--glass-shadow);
     display: flex;
     flex-direction: column;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 1);
+}
+
+.kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    z-index: 2;
 }
 
 .kpi-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-tertiary);
-    margin-bottom: 0.25rem;
+    letter-spacing: 0.08em;
+    color: #64748b;
 }
 
 .kpi-value {
-    font-size: 1.75rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
     line-height: 1;
+    margin-top: 0.5rem;
 }
 
 .kpi-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.4rem;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Panel Styles */
+.sparkline-container {
+    height: 60px;
+    width: 100%;
+    margin-top: -10px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Premium Panel Styles */
 .ent-panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
     height: 100%;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.ent-panel:hover {
+    box-shadow: 0 20px 50px -10px rgba(0,0,0,0.08);
 }
 
 .ent-panel-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+    padding: 1.5rem 1.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background: transparent;
 }
 
 .ent-panel-title {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.ent-panel-title i {
+    color: var(--brand-primary);
+    margin-right: 0.8rem;
+    font-size: 1.3rem;
+}
+
+.panel-body {
+    padding: 1.75rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main Chart Container */
+.main-chart-container {
+    position: relative;
+    height: 380px;
+    width: 100%;
+}
+
+/* Activity Ticker */
+.activity-feed {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    height: 380px;
+}
+
+.activity-feed::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, rgba(79, 70, 229, 0.5), rgba(236, 72, 153, 0.1));
+    z-index: 1;
+}
+
+.activity-item {
+    position: relative;
+    padding: 1rem 0 1rem 3.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.03);
+    animation: slideIn 0.5s ease-out forwards;
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+.activity-item:nth-child(1) { animation-delay: 0.1s; }
+.activity-item:nth-child(2) { animation-delay: 0.2s; }
+.activity-item:nth-child(3) { animation-delay: 0.3s; }
+.activity-item:nth-child(4) { animation-delay: 0.4s; }
+.activity-item:nth-child(5) { animation-delay: 0.5s; }
+
+@keyframes slideIn {
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.activity-dot {
+    position: absolute;
+    left: 14px;
+    top: 1.25rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--brand-primary);
+    z-index: 2;
+    box-shadow: 0 0 10px var(--glow-primary);
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.2rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
+}
+
+.activity-text {
+    font-size: 0.95rem;
+    color: #334155;
+    font-weight: 500;
     margin: 0;
 }
 
-/* Action Menu */
-.action-menu {
-    display: flex;
-    flex-direction: column;
-    padding: 0.5rem;
+.activity-text strong {
+    color: #0f172a;
+    font-weight: 700;
 }
 
-.action-menu-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    color: var(--text-secondary);
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.15s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.action-menu-item:hover {
-    background-color: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.action-menu-icon {
-    margin-right: 1rem;
-    font-size: 1.1rem;
-    color: var(--text-tertiary);
-    width: 20px;
-    text-align: center;
-}
-
-.action-menu-chevron {
-    margin-left: auto;
-    font-size: 0.8rem;
-    color: var(--text-tertiary);
-}
-
-/* Enterprise Table */
-.ent-table {
-    width: 100%;
-    margin-bottom: 0;
-}
-
-.ent-table th {
-    background-color: var(--bg-secondary);
-    color: var(--text-tertiary);
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.75rem 1.25rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.ent-table td {
-    padding: 0.875rem 1.25rem;
-    font-size: 0.9rem;
-    vertical-align: middle;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-secondary);
-}
-
-.ent-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.ent-table tbody tr:hover {
-    background-color: rgba(0,0,0,0.01);
-}
-
-/* Status Badges */
-.ent-badge {
-    padding: 0.25rem 0.6rem;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.ent-badge-active {
-    background-color: rgba(34, 197, 94, 0.1);
-    color: rgb(21, 128, 61);
-    border: 1px solid rgba(34, 197, 94, 0.2);
-}
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- KPI Ribbon -->
+<!-- Welcome Hero -->
+<div class="hero-banner">
+    <div class="hero-content">
+        <div>
+            <h1 class="hero-greeting" id="greetingText">Welcome back, Admin!</h1>
+            <p class="hero-subtext">Here is what's happening across your institution today.</p>
+        </div>
+        <div class="live-clock-container">
+            <div class="live-time" id="liveTime">00:00:00</div>
+            <div class="live-date" id="liveDate">Loading date...</div>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Ribbon with Sparklines -->
 <div class="kpi-ribbon">
     {% for stat in dashboard.stats %}
     <div class="kpi-card">
-        <div class="kpi-info">
-            <span class="kpi-label">{{ stat.label }}</span>
-            <span class="kpi-value">{{ stat.value }}</span>
+        <div class="kpi-header">
+            <div>
+                <div class="kpi-label">{{ stat.label }}</div>
+                <div class="kpi-value">{{ stat.value }}</div>
+            </div>
+            <div class="kpi-icon text-{{ stat.color }}">
+                <i class="bi {{ stat.icon }}"></i>
+            </div>
         </div>
-        <div class="kpi-icon text-{{ stat.color }} bg-{{ stat.color }}-subtle">
-            <i class="bi {{ stat.icon }}"></i>
+        <div class="sparkline-container">
+            <canvas id="sparkline-{{ loop.index }}"></canvas>
         </div>
     </div>
     {% endfor %}
 </div>
 
-<div class="row g-4">
-    <!-- Quick Actions Panel -->
-    <div class="col-lg-4">
+<!-- Main Analytics Row -->
+<div class="row g-4 mb-4">
+    <!-- Trend Chart -->
+    <div class="col-xl-8 col-lg-7">
         <div class="ent-panel">
             <div class="ent-panel-header">
-                <h6 class="ent-panel-title"><i class="bi bi-grid-1x2 me-2"></i>Modules</h6>
+                <h6 class="ent-panel-title"><i class="bi bi-graph-up-arrow"></i>Platform Growth & Revenue Trends</h6>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-secondary active">6 Months</button>
+                    <button class="btn btn-sm btn-outline-secondary">1 Year</button>
+                </div>
             </div>
-            <div class="action-menu">
-                <a href="/students" class="action-menu-item">
-                    <i class="bi bi-people action-menu-icon"></i> Student Management
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
-                <a href="/teachers" class="action-menu-item">
-                    <i class="bi bi-person-badge action-menu-icon"></i> Faculty Directory
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
-                <a href="/departments" class="action-menu-item">
-                    <i class="bi bi-building action-menu-icon"></i> Departments & Courses
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
-                <a href="/fees" class="action-menu-item">
-                    <i class="bi bi-cash-stack action-menu-icon"></i> Fee Tracking
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
-                <a href="/marks" class="action-menu-item">
-                    <i class="bi bi-journal-check action-menu-icon"></i> Examinations
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
-                <a href="/library" class="action-menu-item">
-                    <i class="bi bi-book action-menu-icon"></i> Library System
-                    <i class="bi bi-chevron-right action-menu-chevron"></i>
-                </a>
+            <div class="panel-body">
+                <div class="main-chart-container">
+                    <canvas id="mainTrendChart"></canvas>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Data Table Panel -->
-    <div class="col-lg-8">
+    <!-- Live Activity Feed -->
+    <div class="col-xl-4 col-lg-5">
         <div class="ent-panel">
             <div class="ent-panel-header">
-                <h6 class="ent-panel-title"><i class="bi bi-clock-history me-2"></i>Recent Enrollments</h6>
-                <a href="/students" class="btn btn-sm btn-link text-decoration-none p-0" style="font-size:0.8rem;font-weight:600;">View All</a>
+                <h6 class="ent-panel-title"><i class="bi bi-activity"></i>Live System Activity</h6>
+                <span class="badge bg-success rounded-pill pulse-badge">Live</span>
             </div>
-            <div class="table-responsive flex-grow-1">
-                <table class="table ent-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Student ID</th>
-                            <th>Department</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for student in dashboard.recent_students %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div style="width:28px;height:28px;border-radius:4px;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;color:#fff;">
-                                        {{ student.user.full_name[0] | upper if student.user else '?' }}
-                                    </div>
-                                    <span class="fw-medium text-dark">{{ student.user.full_name if student.user else 'Unknown' }}</span>
-                                </div>
-                            </td>
-                            <td><code class="text-primary fw-bold">{{ student.student_id or student.enrollment_number }}</code></td>
-                            <td>{{ student.department.name if student.department else 'Unassigned' }}</td>
-                            <td><span class="ent-badge ent-badge-active">Active</span></td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
-                                No recent enrollments found.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="panel-body p-0">
+                <ul class="activity-feed" id="activityFeed">
+                    {% for activity in dashboard.recent_activities %}
+                    <li class="activity-item">
+                        <div class="activity-dot" style="border-color: {{ activity.color }}"></div>
+                        <div class="activity-time">{{ activity.time }}</div>
+                        <p class="activity-text">{{ activity.text | safe }}</p>
+                    </li>
+                    {% else %}
+                    <li class="activity-item" style="opacity:1; transform:none;">
+                        <p class="activity-text text-muted text-center pt-5">No recent system activity.</p>
+                    </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Hidden inputs for backend data -->
+<input type="hidden" id="stat-students" value="{{ dashboard.total_students }}">
+<input type="hidden" id="stat-fees" value="{{ dashboard.pending_fees }}">
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    
+    // ── 1. LIVE CLOCK & GREETING ─────────────────────────────────────
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        
+        document.getElementById('liveTime').textContent = timeStr;
+        document.getElementById('liveDate').textContent = dateStr;
+
+        const hour = now.getHours();
+        let greeting = "Good Evening";
+        if (hour < 12) greeting = "Good Morning";
+        else if (hour < 17) greeting = "Good Afternoon";
+        document.getElementById('greetingText').textContent = `${greeting}, Admin!`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ── 2. CHART CONFIGURATIONS ──────────────────────────────────────
+    Chart.defaults.font.family = "'Outfit', sans-serif";
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.scale.grid.color = 'rgba(0,0,0,0.03)';
+    
+    // Helper to generate realistic-looking random sparkline data
+    function generateSparklineData(points, trend = 'up') {
+        let current = 50;
+        return Array.from({length: points}, () => {
+            const change = (Math.random() - (trend === 'up' ? 0.3 : 0.5)) * 10;
+            current = Math.max(10, current + change);
+            return current;
+        });
+    }
+
+    // ── 3. SPARKLINE CHARTS ──────────────────────────────────────────
+    // Find all sparkline canvas elements
+    const sparklines = document.querySelectorAll('[id^="sparkline-"]');
+    
+    sparklines.forEach((canvas, index) => {
+        const ctx = canvas.getContext('2d');
+        
+        // Alternate colors for variety
+        const colors = [
+            'rgba(79, 70, 229, 1)',  // Indigo
+            'rgba(236, 72, 153, 1)', // Pink
+            'rgba(20, 184, 166, 1)', // Teal
+            'rgba(245, 158, 11, 1)'  // Amber
+        ];
+        const color = colors[index % colors.length];
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 60);
+        gradient.addColorStop(0, color.replace('1)', '0.3)'));
+        gradient.addColorStop(1, color.replace('1)', '0.0)'));
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(15).fill(''),
+                datasets: [{
+                    data: generateSparklineData(15, index % 2 === 0 ? 'up' : 'neutral'),
+                    borderColor: color,
+                    borderWidth: 2,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: {
+                    x: { display: false },
+                    y: { display: false, min: 0 }
+                },
+                layout: { padding: 0 },
+                animation: { duration: 2000, easing: 'easeOutQuart' }
+            }
+        });
+    });
+
+    // ── 4. MAIN TREND CHART ──────────────────────────────────────────
+    const ctxMain = document.getElementById('mainTrendChart').getContext('2d');
+    
+    const gradientStudents = ctxMain.createLinearGradient(0, 0, 0, 400);
+    gradientStudents.addColorStop(0, 'rgba(79, 70, 229, 0.8)'); // brand-primary
+    gradientStudents.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+    const gradientRevenue = ctxMain.createLinearGradient(0, 0, 0, 400);
+    gradientRevenue.addColorStop(0, 'rgba(20, 184, 166, 0.8)'); // brand-tertiary
+    gradientRevenue.addColorStop(1, 'rgba(20, 184, 166, 0.0)');
+
+    new Chart(ctxMain, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [
+                {
+                    label: 'New Enrollments',
+                    data: [120, 190, 250, 220, 310, 400],
+                    borderColor: '#4f46e5',
+                    backgroundColor: gradientStudents,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Fee Collection (₹)',
+                    data: [45000, 62000, 85000, 71000, 95000, 120000],
+                    borderColor: '#14b8a6',
+                    backgroundColor: gradientRevenue,
+                    borderWidth: 3,
+                    borderDash: [5, 5],
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        font: { family: "'Outfit'", size: 13, weight: '600' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                    titleFont: { size: 14, family: "'Outfit'" },
+                    bodyFont: { size: 13, family: "'Outfit'" },
+                    padding: 12,
+                    cornerRadius: 8,
+                    boxPadding: 6
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false }
+                },
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: { display: true, text: 'Enrollments' }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Revenue (₹)' }
+                }
+            }
+        }
+    });
+
+    // ── 5. LIVE ACTIVITY FEED ───────────────────────────────────
+    // Feed is now rendered by Jinja and synced with the actual database.
+});
+</script>
+<style>
+.pulse-badge {
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+</style>
 {% endblock %}

@@ -63,6 +63,8 @@ class AdminDashboard(BaseDashboard):
 
     def get_stats(self) -> Dict[str, Any]:
         from app.models.user import User
+        from app.models.audit_log import AuditLog
+        
         total_students = self._db.query(Student).filter(Student.is_deleted == False).count()
         total_teachers = self._db.query(Teacher).filter(Teacher.is_deleted == False).count()
         total_departments = self._db.query(Department).filter(Department.is_deleted == False).count()
@@ -82,6 +84,28 @@ class AdminDashboard(BaseDashboard):
             .limit(5)
             .all()
         )
+        
+        # Fetch actual system activities
+        recent_activities = (
+            self._db.query(AuditLog)
+            .order_by(AuditLog.created_at.desc())
+            .limit(10)
+            .all()
+        )
+        
+        activities_data = []
+        for act in recent_activities:
+            # We construct a human-readable text
+            if act.details:
+                text = act.details
+            else:
+                text = f"Action <strong>{act.action}</strong> performed on {act.resource}."
+                
+            activities_data.append({
+                "time": act.created_at.strftime("%I:%M %p, %b %d") if act.created_at else "Just now",
+                "text": text,
+                "color": "#4f46e5" if act.action == "CREATE" else "#10b981" if act.action == "UPDATE" else "#f59e0b"
+            })
 
         return {
             "total_students": total_students,
@@ -91,6 +115,7 @@ class AdminDashboard(BaseDashboard):
             "total_users": total_users,
             "pending_fees": float(pending_fees),
             "recent_students": recent_students,
+            "recent_activities": activities_data,
             "stats": [
                 {"label": "Total Students", "value": total_students, "icon": "bi-people", "color": "primary"},
                 {"label": "Total Teachers", "value": total_teachers, "icon": "bi-person-badge", "color": "success"},
