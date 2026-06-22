@@ -107,6 +107,39 @@ class AdminDashboard(BaseDashboard):
                 "color": "#4f46e5" if act.action == "CREATE" else "#10b981" if act.action == "UPDATE" else "#f59e0b"
             })
 
+        # ── TREND DATA CALCULATION (Last 6 Months) ──
+        from datetime import datetime
+        import calendar
+        from sqlalchemy import extract
+
+        today = datetime.now()
+        months_labels = []
+        enrollment_data = []
+        revenue_data = []
+
+        for i in range(5, -1, -1):
+            y, m = today.year, today.month
+            m -= i
+            while m <= 0:
+                y -= 1
+                m += 12
+            
+            months_labels.append(calendar.month_abbr[m])
+            
+            enrollments = self._db.query(Student).filter(
+                Student.is_deleted == False,
+                extract('year', Student.created_at) == y,
+                extract('month', Student.created_at) == m
+            ).count()
+            enrollment_data.append(enrollments)
+            
+            revenue = self._db.query(func.coalesce(func.sum(Fee.paid_amount), 0)).filter(
+                Fee.is_deleted == False,
+                extract('year', Fee.updated_at) == y,
+                extract('month', Fee.updated_at) == m
+            ).scalar() or 0
+            revenue_data.append(float(revenue))
+
         return {
             "total_students": total_students,
             "total_teachers": total_teachers,
@@ -116,6 +149,9 @@ class AdminDashboard(BaseDashboard):
             "pending_fees": float(pending_fees),
             "recent_students": recent_students,
             "recent_activities": activities_data,
+            "trend_labels": months_labels,
+            "trend_enrollments": enrollment_data,
+            "trend_revenue": revenue_data,
             "stats": [
                 {"label": "Total Students", "value": total_students, "icon": "bi-people", "color": "primary"},
                 {"label": "Total Teachers", "value": total_teachers, "icon": "bi-person-badge", "color": "success"},

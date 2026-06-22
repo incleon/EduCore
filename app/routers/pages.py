@@ -258,8 +258,9 @@ def courses_list(request: Request, db: Session = Depends(get_db),
 def course_detail(request: Request, course_id: int, db: Session = Depends(get_db),
                   user=Depends(get_current_user)):
     course = CourseService(db).get(course_id)
+    departments = course.departments.filter_by(is_deleted=False).all() if course else []
     return templates.TemplateResponse(
-        "courses/detail.html", _context(request, user, course=course),
+        "courses/detail.html", _context(request, user, course=course, departments=departments),
     )
 
 

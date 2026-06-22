@@ -349,9 +349,8 @@ body {
         <div class="ent-panel">
             <div class="ent-panel-header">
                 <h6 class="ent-panel-title"><i class="bi bi-graph-up-arrow"></i>Platform Growth & Revenue Trends</h6>
-                <div class="btn-group">
+                <div class="btn-group d-none">
                     <button class="btn btn-sm btn-outline-secondary active">6 Months</button>
-                    <button class="btn btn-sm btn-outline-secondary">1 Year</button>
                 </div>
             </div>
             <div class="panel-body">
@@ -497,11 +496,11 @@ document.addEventListener("DOMContentLoaded", function() {
     new Chart(ctxMain, {
         type: 'line',
         data: {
-            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            labels: {{ dashboard.trend_labels | tojson }},
             datasets: [
                 {
                     label: 'New Enrollments',
-                    data: [120, 190, 250, 220, 310, 400],
+                    data: {{ dashboard.trend_enrollments | tojson }},
                     borderColor: '#4f46e5',
                     backgroundColor: gradientStudents,
                     borderWidth: 3,
@@ -511,7 +510,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 },
                 {
                     label: 'Fee Collection (₹)',
-                    data: [45000, 62000, 85000, 71000, 95000, 120000],
+                    data: {{ dashboard.trend_revenue | tojson }},
                     borderColor: '#14b8a6',
                     backgroundColor: gradientRevenue,
                     borderWidth: 3,

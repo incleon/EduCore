@@ -54,7 +54,7 @@
                         </div>
                     </div>
                     {% if 'manage_departments' in permissions %}
-                    <button class="btn btn-sm btn-link text-danger p-0" onclick="event.preventDefault(); deleteItem('departments', {{ dept.id }});" style="z-index: 2;">
+                    <button class="btn btn-sm btn-link text-danger p-0" onclick="event.preventDefault(); event.stopPropagation(); deleteItem('departments', {{ dept.id }});" style="z-index: 2;">
                         <i class="bi bi-trash"></i>
                     </button>
                     {% endif %}

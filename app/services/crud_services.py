@@ -160,15 +160,15 @@ class StudentService(IService):
 
     def _get_branch_code(self, department_code: str) -> str:
         if department_code:
-            return department_code[:2].upper()
-        return "XX"
+            return department_code.replace("-", "")[:4].upper()
+        return "XXXX"
 
     def generate_student_id(self, admission_year: int, branch_code: str) -> str:
         from app.models.student import Student
         from sqlalchemy import desc
         
         yy = str(admission_year)[-2:]
-        prefix = f"{yy}{branch_code}"
+        prefix = f"{yy}-{branch_code}-"
         
         last_student = (
             self._db.query(Student)
@@ -179,7 +179,7 @@ class StudentService(IService):
         
         if last_student and last_student.student_id:
             try:
-                last_seq = int(last_student.student_id[-3:])
+                last_seq = int(last_student.student_id.split('-')[-1])
                 next_seq = last_seq + 1
             except ValueError:
                 next_seq = 1
@@ -519,6 +519,12 @@ class CourseService(IService):
         return result
 
     def delete(self, id: int) -> bool:
+        course = self._course_repo.get_by_id(id)
+        if not course:
+            return False
+        # Cascade soft delete to all departments
+        for dept in course.departments.filter_by(is_deleted=False).all():
+            DepartmentService(self._db).delete(dept.id)
         return self._course_repo.soft_delete(id)
 
 
@@ -560,6 +566,21 @@ class DepartmentService(IService):
         return result
 
     def delete(self, id: int) -> bool:
+        dept = self._dept_repo.get_by_id(id)
+        if not dept:
+            return False
+        # Cascade soft delete to all subjects
+        for subject in dept.subjects.filter_by(is_deleted=False).all():
+            SubjectService(self._db).delete(subject.id)
+            
+        # Cascade soft delete to all students
+        for student in dept.students.filter_by(is_deleted=False).all():
+            StudentService(self._db).delete(student.id)
+            
+        # Cascade soft delete to all teachers
+        for teacher in dept.teachers.filter_by(is_deleted=False).all():
+            TeacherService(self._db).delete(teacher.id)
+            
         return self._dept_repo.soft_delete(id)
 
     def assign_hod(self, department_id: int, teacher_id: int):

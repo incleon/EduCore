@@ -97,8 +97,8 @@
                     </td>
                     {% if 'manage_subjects' in permissions %}
                     <td>
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openAssignTeacherModal({{ subject.id }}, '{{ subject.name }}', '{{ subject.code }}')" title="Assign Sections"><i class="bi bi-person-plus"></i></button>
-                        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('subjects', {{ subject.id }})" title="Delete Subject"><i class="bi bi-trash"></i></button>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="openAssignTeacherModal('{{ subject.id }}', '{{ subject.name }}', '{{ subject.code }}')" title="Assign Sections"><i class="bi bi-person-plus"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteItem('subjects', '{{ subject.id }}')" title="Delete Subject"><i class="bi bi-trash"></i></button>
                     </td>
                     {% endif %}
                 </tr>

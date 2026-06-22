@@ -71,9 +71,14 @@ Create a `.env` file in the root directory (use `.env.example` as a template) an
 > For automatic MySQL user/database creation, run `python scripts\create_mysql_db.py` after configuring `.env`.
 
 ### 4. Database Initialization
-Seed the database with initial academic structures, roles, permissions, and 100+ realistic faculty records:
+**Step 1:** Initialize the core tables, default roles (Admin, Student, Teacher, etc.), system permissions, and demo users:
 ```bash
 python app/database/seed.py
+```
+
+**Step 2 (Optional but Recommended for Testing):** Populate the system with a massive, realistic test dataset. This automatically generates a full academic program structure (B.Tech, M.Tech, B.Sc, B.A, B.Com), 25 departments, hundreds of realistic faculty profiles, and thousands of auto-generated realistic students (50 per year per department, smartly placed in odd semesters):
+```bash
+python scripts/seed_master.py
 ```
 
 ### 5. Running the Server
