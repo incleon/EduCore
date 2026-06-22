@@ -13,6 +13,8 @@ class LoginRequest(BaseModel):
     """Login form data."""
     email: str = Field(..., description="Email address")
     password: str = Field(..., min_length=6, description="Password")
+    captcha_answer: str = Field(..., description="Captcha answer")
+    captcha_token: str = Field(..., description="Captcha token")
 
 
 class TokenResponse(BaseModel):

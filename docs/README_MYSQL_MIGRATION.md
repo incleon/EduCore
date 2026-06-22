@@ -92,7 +92,7 @@ You must tell SQLAlchemy to connect to the new MySQL database instead of the old
 
 2. Locate the line that looks like this:
    ```text
-   DATABASE_URL="sqlite:///./cms.db"
+   DATABASE_URL="mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/cms_db"
    ```
 
 3. Change it to the MySQL connection string format:

@@ -101,7 +101,7 @@ Successfully removed the Course entity from the CMS application and replaced it 
 Existing `courses` database table will be removed on next application startup (due to `create_all` in dev mode). Since Subject now directly references Department instead of Course, all existing Subject records that had `course_id` references will lose that association.
 
 **Action Required**: 
-1. Delete or backup existing `cms.db` file
+1. (Project now uses MySQL; no local SQLite file needed)
 2. Restart the application
 3. Database will automatically recreate with new schema
 4. Seed data will re-populate with fresh Subject records
@@ -172,7 +172,7 @@ GET /subjects - Subject management page (replaces /courses)
 ## Testing Recommendations
 
 1. **Database Reset**
-   - Delete `cms.db` file
+   - (MySQL database used; local SQLite removed)
    - Restart application server
    - Verify tables recreate with new schema
 
@@ -234,8 +234,7 @@ GET /subjects - Subject management page (replaces /courses)
    - Deploy to development environment
 
 2. **Database Migration**
-   - Backup existing `cms.db` if needed
-   - Delete `cms.db`
+   - (MySQL database used; local SQLite no longer required)
    - Restart application
 
 3. **User Communication**

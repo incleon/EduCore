@@ -48,7 +48,7 @@ class Settings(BaseSettings):
 
     # ── Database ─────────────────────────────────────────────
     DATABASE_URL: str = Field(
-        default="sqlite:///./cms.db",
+        default="mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/cms_db",
         description="Database connection string"
     )
 
@@ -84,7 +84,15 @@ class Settings(BaseSettings):
 
     # ── Email ────────────────────────────────────────────────
     MAIL_USERNAME: str = Field(default="info.educorecms@gmail.com", description="SMTP Username")
-    MAIL_PASSWORD: str = Field(default="", description="SMTP App Password")
+    MAIL_PASSWORD: str = Field(default="", description="SMTP App Password or service password")
+    MAIL_FROM: Optional[str] = Field(default=None, description="SMTP From address")
+    MAIL_SERVER: str = Field(default="smtp.gmail.com", description="SMTP server")
+    MAIL_PORT: int = Field(default=587, description="SMTP port")
+    MAIL_STARTTLS: bool = Field(default=True, description="Enable STARTTLS")
+    MAIL_SSL_TLS: bool = Field(default=False, description="Enable SSL/TLS")
+    MAIL_VALIDATE_CERTS: bool = Field(default=True, description="Validate SMTP certificates")
+    MAIL_DEBUG: int = Field(default=0, description="SMTP debug level")
+    MAIL_TIMEOUT: int = Field(default=30, description="SMTP connection timeout in seconds")
 
     # ── Class-level configuration ────────────────────────────
     model_config = {
@@ -108,7 +116,7 @@ class Settings(BaseSettings):
         Usage: test_settings = Settings.for_testing()
         """
         return cls(
-            DATABASE_URL="sqlite:///./test_cms.db",
+            DATABASE_URL="mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/test_cms_db",
             DEBUG=True,
             SECRET_KEY="test-secret-key",
             LOG_LEVEL="DEBUG",

@@ -46,6 +46,16 @@
                             </button>
                         </div>
                     </div>
+                    <div class="mb-4">
+                        <label for="captcha_answer" class="form-label">Captcha</label>
+                        <div class="d-flex align-items-center gap-3 mb-2">
+                            <img id="captcha_img" src="/static/images/placeholder_captcha.png" alt="captcha" style="height:60px;"/>
+                            <button type="button" class="btn btn-outline-secondary" onclick="reloadCaptcha()">Refresh</button>
+                        </div>
+                        <input type="text" class="form-control" id="captcha_answer"
+                               placeholder="Enter captcha answer" required>
+                        <input type="hidden" id="captcha_token" value="">
+                    </div>
                     <button type="submit" class="btn btn-primary w-100" id="loginBtn"
                             style="padding: 10px;">
                         <span class="spinner-border spinner-border-sm d-none me-2" id="loginSpinner"></span>
@@ -81,6 +91,22 @@ function togglePassword() {
     pwd.type = pwd.type === 'password' ? 'text' : 'password';
     icon.className = pwd.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
+function reloadCaptcha(){
+    // fetch a fresh captcha challenge from the server
+    fetch('/captcha/new')
+        .then(r => r.json())
+        .then(data => {
+            if(data && data.image_url){
+                document.getElementById('captcha_token').value = data.captcha_token || '';
+                const img = document.getElementById('captcha_img');
+                img.src = data.image_url;
+            }
+        })
+        .catch(()=>{ /* ignore */ })
+}
+
+// Load initial captcha on page load
+document.addEventListener('DOMContentLoaded', () => { reloadCaptcha(); });
 async function handleLogin(e) {
     e.preventDefault();
     const btn = document.getElementById('loginBtn');
@@ -90,7 +116,12 @@ async function handleLogin(e) {
     try {
         const r = await fetch('/auth/login', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }),
+            body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            captcha_answer: document.getElementById('captcha_answer').value,
+            captcha_token: document.getElementById('captcha_token').value,
+        }),
         });
         const data = await r.json();
         if (r.ok) { window.location.href = '/dashboard'; }

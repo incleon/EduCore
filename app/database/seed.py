@@ -5,6 +5,8 @@ Seed Data — Pre-populate database with demo data
 Creates roles, permissions, role-permission mappings, and demo users.
 """
 
+import datetime
+
 from sqlalchemy.orm import Session
 from app.models.user import User, Role, Permission, UserRole, RolePermission
 from app.models.department import Department
@@ -97,85 +99,172 @@ ROLES = [
 def seed_database(db: Session) -> None:
     """Seed the database with initial data if empty."""
 
-    # Check if already seeded
-    if db.query(Role).first():
-        logger.info("Database already seeded — skipping")
-        return
+    # Check if roles already exist. If so, skip role/permission/user seeding
+    # but continue to ensure courses and departments are present.
+    roles_exist = bool(db.query(Role).first())
+    if roles_exist:
+        logger.info("Basic roles exist — skipping role/user seeding, continuing with courses/departments")
 
     logger.info("Seeding database with initial data...")
 
-    # ── 1. Create Permissions ────────────────────────────────
+    # ── 1-4. Create Permissions, Roles and Demo Users (only if missing)
     perm_map = {}
-    for name, resource, action, description in PERMISSIONS:
-        perm = Permission(name=name, resource=resource, action=action, description=description)
-        db.add(perm)
-        db.flush()
-        perm_map[name] = perm.id
-
-    # ── 2. Create Roles ──────────────────────────────────────
     role_map = {}
-    for name, display_name in ROLES:
-        role = Role(name=name, display_name=display_name, description=f"{display_name} role")
-        db.add(role)
-        db.flush()
-        role_map[name] = role.id
-
-    # ── 3. Assign Permissions to Roles ───────────────────────
-    for role_name, perm_names in ROLE_PERMISSIONS.items():
-        role_id = role_map[role_name]
-        for perm_name in perm_names:
-            if perm_name in perm_map:
-                rp = RolePermission(role_id=role_id, permission_id=perm_map[perm_name])
-                db.add(rp)
-
-    db.flush()
-
-    # ── 4. Create Demo Users ─────────────────────────────────
+    # ensure demo password is available for any user creation below
     demo_password = PasswordHasher.hash_password("admin123")
+    if not roles_exist:
+        # 1. Create Permissions
+        for name, resource, action, description in PERMISSIONS:
+            # avoid duplicate perms
+            perm = db.query(Permission).filter_by(name=name).first()
+            if not perm:
+                perm = Permission(name=name, resource=resource, action=action, description=description)
+                db.add(perm)
+                db.flush()
+            perm_map[name] = perm.id
 
-    # Admin
-    admin = User(
-        email="admin@cms.edu", username="admin",
-        hashed_password=demo_password, full_name="System Administrator",
-    )
-    db.add(admin)
-    db.flush()
-    db.add(UserRole(user_id=admin.id, role_id=role_map["admin"]))
+        # 2. Create Roles
+        for name, display_name in ROLES:
+            role = db.query(Role).filter_by(name=name).first()
+            if not role:
+                role = Role(name=name, display_name=display_name, description=f"{display_name} role")
+                db.add(role)
+                db.flush()
+            role_map[name] = role.id
 
-    # Accountant
-    accountant = User(
-        email="accountant@cms.edu", username="accountant",
-        hashed_password=demo_password, full_name="John Accountant",
-    )
-    db.add(accountant)
-    db.flush()
-    db.add(UserRole(user_id=accountant.id, role_id=role_map["accountant"]))
+        # 3. Assign Permissions to Roles
+        for role_name, perm_names in ROLE_PERMISSIONS.items():
+            role_id = role_map[role_name]
+            for perm_name in perm_names:
+                if perm_name in perm_map:
+                    exists = db.query(RolePermission).filter_by(role_id=role_id, permission_id=perm_map[perm_name]).first()
+                    if not exists:
+                        rp = RolePermission(role_id=role_id, permission_id=perm_map[perm_name])
+                        db.add(rp)
 
-    # Librarian
-    librarian = User(
-        email="librarian@cms.edu", username="librarian",
-        hashed_password=demo_password, full_name="Lisa Librarian",
-    )
-    db.add(librarian)
-    db.flush()
-    db.add(UserRole(user_id=librarian.id, role_id=role_map["librarian"]))
+        db.flush()
 
-    # ── 4.5 Create Courses ───────────────────────────────────
+        # 4. Create Demo Users
+        demo_password = PasswordHasher.hash_password("admin123")
+
+        # Admin
+        admin = User(
+            email="admin@cms.edu", username="admin",
+            hashed_password=demo_password, full_name="System Administrator",
+        )
+        db.add(admin)
+        db.flush()
+        db.add(UserRole(user_id=admin.id, role_id=role_map["admin"]))
+
+        # Accountant
+        accountant = User(
+            email="accountant@cms.edu", username="accountant",
+            hashed_password=demo_password, full_name="John Accountant",
+        )
+        db.add(accountant)
+        db.flush()
+        db.add(UserRole(user_id=accountant.id, role_id=role_map["accountant"]))
+
+        # Librarian
+        librarian = User(
+            email="librarian@cms.edu", username="librarian",
+            hashed_password=demo_password, full_name="Lisa Librarian",
+        )
+        db.add(librarian)
+        db.flush()
+        db.add(UserRole(user_id=librarian.id, role_id=role_map["librarian"]))
+    else:
+        # roles already exist; ensure role_map contains ids for later use when needed
+        for name, _ in ROLES:
+            role = db.query(Role).filter_by(name=name).first()
+            if role:
+                role_map[name] = role.id
+
+    # ── 4.5 Create Courses (only if missing) ────────────────
     from app.models.course import Course
-    btech = Course(name="B.TECH", code="B.TECH", description="Bachelor of Technology", duration_years="4 years")
-    mba = Course(name="MBA", code="MBA", description="Master of Business Administration", duration_years="2 years")
-    bpharma = Course(name="B.PHARMA", code="B.PHARMA", description="Bachelor of Pharmacy", duration_years="4 years")
-    bcom = Course(name="B.COM", code="B.COM", description="Bachelor of Commerce", duration_years="3 years")
-    db.add_all([btech, mba, bpharma, bcom])
-    db.flush()
+    def get_or_create_course(code, name, description, duration):
+        c = db.query(Course).filter_by(code=code).first()
+        if c:
+            return c
+        c = Course(name=name, code=code, description=description, duration_years=duration)
+        db.add(c)
+        db.flush()
+        return c
 
-    # ── 5. Create Departments ────────────────────────────────
-    cs_dept = Department(name="Computer Science", code="CS", description="Department of Computer Science", course_id=btech.id)
-    ee_dept = Department(name="Electrical Engineering", code="EE", description="Department of Electrical Engineering", course_id=btech.id)
-    me_dept = Department(name="Mechanical Engineering", code="ME", description="Department of Mechanical Engineering", course_id=btech.id)
-    finance_dept = Department(name="Finance", code="FIN", description="Department of Finance", course_id=mba.id)
-    db.add_all([cs_dept, ee_dept, me_dept, finance_dept])
-    db.flush()
+    btech = get_or_create_course("B.TECH", "B.TECH", "Bachelor of Technology", "4 years")
+    mba = get_or_create_course("MBA", "MBA", "Master of Business Administration", "2 years")
+    bpharma = get_or_create_course("B.PHARMA", "B.PHARMA", "Bachelor of Pharmacy", "4 years")
+    bcom = get_or_create_course("B.COM", "B.COM", "Bachelor of Commerce", "3 years")
+
+    # ── 5. Create Departments (5 per course) ─────────────────
+    # B.TECH departments
+    btech_departments = [
+        ("Computer Science", "CS"),
+        ("Electrical Engineering", "EE"),
+        ("Mechanical Engineering", "ME"),
+        ("Civil Engineering", "CE"),
+        ("Chemical Engineering", "CH"),
+    ]
+
+    # MBA departments
+    mba_departments = [
+        ("Finance", "FN"),
+        ("Marketing", "MK"),
+        ("Human Resources", "HR"),
+        ("Operations Management", "OM"),
+        ("Information Technology", "IT"),
+    ]
+
+    # B.PHARMA departments
+    bpharma_departments = [
+        ("Pharmaceutics", "PH"),
+        ("Pharmacology", "PK"),
+        ("Pharmaceutical Chemistry", "PC"),
+        ("Quality Assurance", "QA"),
+        ("Regulatory Science", "RS"),
+    ]
+
+    # B.COM departments
+    bcom_departments = [
+        ("Accounting", "AC"),
+        ("Business Management", "BM"),
+        ("Financial Management", "FM"),
+        ("Taxation", "TX"),
+        ("International Business", "IB"),
+    ]
+
+    # Create departments only if they do not already exist for the course
+    dept_objs = []
+    def ensure_dept(name, code, course_obj):
+        # Check global uniqueness: department name or code may already exist
+        d = db.query(Department).filter((Department.code == code) | (Department.name == name)).first()
+        if d:
+            # If an existing department belongs to a different course, return it (avoid duplicates)
+            return d
+        # Otherwise create new department under the given course
+        d = Department(name=name, code=code, description=f"Department of {name}", course_id=course_obj.id)
+        db.add(d)
+        db.flush()
+        return d
+
+    for name, code in btech_departments:
+        dept_objs.append(ensure_dept(name, code, btech))
+    for name, code in mba_departments:
+        dept_objs.append(ensure_dept(name, code, mba))
+    for name, code in bpharma_departments:
+        dept_objs.append(ensure_dept(name, code, bpharma))
+    for name, code in bcom_departments:
+        dept_objs.append(ensure_dept(name, code, bcom))
+
+    # Keep convenient references for usage later in the seed script
+    cs_dept = next((d for d in dept_objs if d.code == "CS"), None)
+    ee_dept = next((d for d in dept_objs if d.code == "EE"), None)
+    me_dept = next((d for d in dept_objs if d.code == "ME"), None)
+    finance_dept = next((d for d in dept_objs if d.code == "FN"), None)
+    # Persist departments now so later failures won't rollback these inserts
+    db.commit()
+    # refresh dept objects from DB to ensure ids are present
+    dept_objs = [db.query(Department).filter_by(code=d.code).first() for d in dept_objs]
 
     # ── 6. Create Subjects ───────────────────────────────────
     subjects_data = [
@@ -186,64 +275,89 @@ def seed_database(db: Session) -> None:
         ("Circuit Theory", "EE201", 4, 3, ee_dept.id),
     ]
     for name, code, credits, sem, dept_id in subjects_data:
-        db.add(Subject(name=name, code=code, credits=credits, semester=sem, department_id=dept_id))
+        # avoid duplicate subjects by code
+        existing = db.query(Subject).filter_by(code=code).first()
+        if not existing:
+            db.add(Subject(name=name, code=code, credits=credits, semester=sem, department_id=dept_id))
     db.flush()
 
     # ── 7. Create Demo Teacher ───────────────────────────────
-    teacher_user = User(
-        email="teacher@cms.edu", username="teacher",
-        hashed_password=demo_password, full_name="Dr. Priya Sharma",
-    )
-    db.add(teacher_user)
-    db.flush()
-    db.add(UserRole(user_id=teacher_user.id, role_id=role_map["teacher"]))
+    # Create demo teacher user only if not exists
+    teacher_user = db.query(User).filter_by(email="teacher@cms.edu").first()
+    if not teacher_user:
+        teacher_user = User(
+            email="teacher@cms.edu", username="teacher",
+            hashed_password=demo_password, full_name="Dr. Priya Sharma",
+        )
+        db.add(teacher_user)
+        db.flush()
+        db.add(UserRole(user_id=teacher_user.id, role_id=role_map.get("teacher")))
 
-    teacher = Teacher(
-        user_id=teacher_user.id, department_id=cs_dept.id,
-        employee_id="T001", designation="Assistant Professor",
-        specialization="Data Science", qualification="Ph.D.",
-    )
-    db.add(teacher)
-    db.flush()
+    # Create Teacher record only if not present for this user
+    existing_teacher = db.query(Teacher).filter_by(user_id=teacher_user.id).first()
+    if not existing_teacher:
+        teacher = Teacher(
+            user_id=teacher_user.id, department_id=cs_dept.id,
+            faculty_id=f"FC{datetime.datetime.now().year % 100:02d}000001",
+            employee_id="T001", designation="Assistant Professor",
+            specialization="Data Science", qualification="Ph.D.",
+        )
+        db.add(teacher)
+        db.flush()
 
     # HOD user
-    hod_user = User(
-        email="hod@cms.edu", username="hod",
-        hashed_password=demo_password, full_name="Dr. Rajesh Kumar",
-    )
-    db.add(hod_user)
-    db.flush()
-    db.add(UserRole(user_id=hod_user.id, role_id=role_map["hod"]))
-    db.add(UserRole(user_id=hod_user.id, role_id=role_map["teacher"]))
+    # HOD user (create only if missing)
+    hod_user = db.query(User).filter_by(email="hod@cms.edu").first()
+    if not hod_user:
+        hod_user = User(
+            email="hod@cms.edu", username="hod",
+            hashed_password=demo_password, full_name="Dr. Rajesh Kumar",
+        )
+        db.add(hod_user)
+        db.flush()
+        db.add(UserRole(user_id=hod_user.id, role_id=role_map.get("hod")))
+        db.add(UserRole(user_id=hod_user.id, role_id=role_map.get("teacher")))
 
-    hod_teacher = Teacher(
-        user_id=hod_user.id, department_id=cs_dept.id,
-        employee_id="T000", designation="Professor & HOD",
-        specialization="Artificial Intelligence", qualification="Ph.D.",
-    )
-    db.add(hod_teacher)
-    db.flush()
-
-    # Set HOD
-    cs_dept.hod_id = hod_teacher.id
+    # Create HOD teacher record only if not present
+    existing_hod_teacher = db.query(Teacher).filter_by(user_id=hod_user.id).first()
+    if not existing_hod_teacher:
+        hod_teacher = Teacher(
+            user_id=hod_user.id, department_id=cs_dept.id,
+            faculty_id=f"FC{datetime.datetime.now().year % 100:02d}000002",
+            employee_id="T000", designation="Professor & HOD",
+            specialization="Artificial Intelligence", qualification="Ph.D.",
+        )
+        db.add(hod_teacher)
+        db.flush()
+        # Set HOD
+        cs_dept.hod_id = hod_teacher.id
+    else:
+        cs_dept.hod_id = existing_hod_teacher.id
 
     # ── 8. Create Demo Students ──────────────────────────────
     for i in range(1, 6):
-        stu_user = User(
-            email=f"student{i}@cms.edu", username=f"student{i}",
-            hashed_password=demo_password,
-            full_name=f"Student {i}",
-        )
-        db.add(stu_user)
-        db.flush()
-        db.add(UserRole(user_id=stu_user.id, role_id=role_map["student"]))
+        email = f"student{i}@cms.edu"
+        stu_user = db.query(User).filter_by(email=email).first()
+        if not stu_user:
+            stu_user = User(
+                email=email, username=f"student{i}",
+                hashed_password=demo_password,
+                full_name=f"Student {i}",
+            )
+            db.add(stu_user)
+            db.flush()
+            db.add(UserRole(user_id=stu_user.id, role_id=role_map.get("student")))
 
-        student = Student(
-            user_id=stu_user.id, department_id=cs_dept.id,
-            enrollment_number=f"2024CS{i:03d}",
-            semester=3, section="A",
-        )
-        db.add(student)
+        student_id = f"24CS{i:03d}"
+        existing_student = db.query(Student).filter_by(student_id=student_id).first()
+        if not existing_student:
+            student = Student(
+                user_id=stu_user.id, department_id=cs_dept.id,
+                student_id=student_id,
+                enrollment_number=f"ENR-24CS{i:03d}",
+                semester=3, section="A",
+            )
+            db.add(student)
 
     db.commit()
     logger.info("Database seeded successfully with demo data!")

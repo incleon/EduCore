@@ -40,6 +40,7 @@ from app.routers.api_routes import (
     timetables_router
 )
 from app.routers.pages import router as pages_router
+from app.routers.captcha import router as captcha_router
 
 
 # ── Setup logging before anything else ───────────────────────
@@ -137,6 +138,7 @@ def create_app() -> FastAPI:
 
     # ── Register Page Routers (Jinja2 templates) ─────────────
     app.include_router(pages_router)
+    app.include_router(captcha_router)
 
     return app
 

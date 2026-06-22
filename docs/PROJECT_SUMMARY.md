@@ -60,7 +60,7 @@ Business logic, validations, and complex transactions are encapsulated within Se
 | Component | Technology |
 | :--- | :--- |
 | **Backend Framework** | FastAPI (Python 3.9+) |
-| **Database** | SQLite (Development) — Easily swappable to PostgreSQL via SQLAlchemy |
+| **Database** | MySQL (Production) — SQLAlchemy ORM for database abstraction |
 | **ORM** | SQLAlchemy 2.0 |
 | **Template Engine** | Jinja2 |
 | **Frontend Framework** | Vanilla HTML5, CSS3, JavaScript + Bootstrap 5.3 |

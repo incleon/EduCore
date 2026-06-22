@@ -8,6 +8,8 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
+from app.core.exceptions import UnauthorizedException
+from app.core.security import CaptchaHandler
 from app.services.auth_service import AuthService
 from app.schemas.auth import LoginRequest
 
@@ -26,6 +28,9 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
     4. Token is set as HTTP-only cookie
     5. Return user info
     """
+    if not CaptchaHandler.verify(data.captcha_token, data.captcha_answer):
+        raise UnauthorizedException(detail="Invalid captcha. Please try again.")
+
     auth_service = AuthService(db)
     result = auth_service.authenticate(data.email, data.password)
 

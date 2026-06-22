@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.core.dependencies import get_db, get_current_user, get_optional_user
+from app.core.security import CaptchaHandler
 from app.services.dashboard_service import DashboardFactory
 from app.services.crud_services import (
     StudentService, TeacherService, CourseService, DepartmentService,
@@ -64,7 +65,17 @@ def home(request: Request, user=Depends(get_optional_user)):
 def login_page(request: Request, user=Depends(get_optional_user)):
     if user:
         return RedirectResponse(url="/dashboard", status_code=302)
-    return templates.TemplateResponse("auth/login.html", _context(request))
+
+    captcha_question, captcha_token = CaptchaHandler.create_challenge()
+    # If reload requested, return full HTML so client can parse new token
+    return templates.TemplateResponse(
+        "auth/login.html",
+        _context(
+            request,
+            captcha_question=captcha_question,
+            captcha_token=captcha_token,
+        ),
+    )
 
 
 # ══════════════════════════════════════════════════════════════

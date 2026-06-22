@@ -216,9 +216,9 @@ class StudentService(IService):
 
         # Generate institutional email
         # Process names
-        first_name_input = data.pop("first_name", "").strip()
-        middle_name_input = data.pop("middle_name", "").strip()
-        last_name_input = data.pop("last_name", "").strip()
+        first_name_input = (data.pop("first_name", "") or "").strip()
+        middle_name_input = (data.pop("middle_name", "") or "").strip()
+        last_name_input = (data.pop("last_name", "") or "").strip()
         
         name_parts = [first_name_input]
         if middle_name_input:

@@ -18,7 +18,6 @@ env/
 
 # Database
 *.db
-*.sqlite3
 
 # Uploads
 uploads/*

@@ -18,9 +18,9 @@ APP_VERSION="1.0.0"
 DEBUG=False
 
 # Database Configuration 
-# For SQLite (Easiest/Local): sqlite:///./cms.db
-# For PostgreSQL (Production): postgresql://user:password@host:port/dbname
-DATABASE_URL=sqlite:///./cms.db
+# The project runs on MySQL by default. Example MySQL URL:
+# mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/cms_db
+DATABASE_URL=mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/cms_db
 
 # Security - MUST change this for production to a secure random string
 # You can generate one using: openssl rand -hex 32
@@ -113,7 +113,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./cms.db:/app/cms.db
+      - ./uploads:/app/uploads  # don't mount local sqlite file; use MySQL
       - ./uploads:/app/uploads
 ```
 
@@ -136,4 +136,4 @@ The app will now be running on port 80 (accessible directly via your server's IP
 ## Useful Production Tips
 - **Always set `DEBUG=False`** to prevent leaking sensitive tracebacks.
 - **Change `SECRET_KEY`**: Run `python -c "import secrets; print(secrets.token_urlsafe(32))"` and paste it into your `.env`.
-- **Use PostgreSQL/MySQL** instead of SQLite if you expect heavy concurrent traffic. Simply change the `DATABASE_URL` in your `.env` file and install the necessary adapter (e.g., `pip install psycopg2-binary` for Postgres).
+- **MySQL is the default database backend.** For high-concurrency scenarios, ensure your MySQL server is properly tuned. Alternatively, you can use PostgreSQL by changing `DATABASE_URL` to `postgresql://user:password@host/dbname` and installing `psycopg2-binary`.

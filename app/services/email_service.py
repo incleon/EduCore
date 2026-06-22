@@ -12,15 +12,28 @@ def get_mail_config() -> ConnectionConfig:
     return ConnectionConfig(
         MAIL_USERNAME=settings.MAIL_USERNAME,
         MAIL_PASSWORD=settings.MAIL_PASSWORD,
-        MAIL_FROM=settings.MAIL_USERNAME,
-        MAIL_PORT=587,
-        MAIL_SERVER="smtp.gmail.com",
-        MAIL_STARTTLS=True,
-        MAIL_SSL_TLS=False,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True,
+        MAIL_FROM=settings.MAIL_FROM or settings.MAIL_USERNAME,
+        MAIL_PORT=settings.MAIL_PORT,
+        MAIL_SERVER=settings.MAIL_SERVER,
+        MAIL_STARTTLS=settings.MAIL_STARTTLS,
+        MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+        USE_CREDENTIALS=bool(settings.MAIL_USERNAME and settings.MAIL_PASSWORD),
+        VALIDATE_CERTS=settings.MAIL_VALIDATE_CERTS,
+        MAIL_DEBUG=settings.MAIL_DEBUG,
+        TIMEOUT=settings.MAIL_TIMEOUT,
         TEMPLATE_FOLDER=Path(__file__).parent.parent / "templates" / "email"
     )
+
+
+def is_email_service_configured() -> bool:
+    if not settings.MAIL_USERNAME or not settings.MAIL_PASSWORD:
+        logger.warning(
+            "Email service not configured. Set MAIL_USERNAME and MAIL_PASSWORD in .env to enable outgoing email. "
+            "For Gmail, use an app password and configure MAIL_PORT=587, MAIL_STARTTLS=True, MAIL_SSL_TLS=False."
+        )
+        return False
+    return True
+
 
 async def send_student_credentials(
     student_name: str,
@@ -32,6 +45,9 @@ async def send_student_credentials(
     """
     Sends the generated credentials to the student's personal email.
     """
+    if not is_email_service_configured():
+        return False
+
     try:
         context = {
             "student_name": student_name,

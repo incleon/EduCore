@@ -1,0 +1,98 @@
+# Database Setup Guide
+
+This guide is for users who do not know databases. Follow the steps exactly.
+
+## Step 1: Install Python
+1. Download Python 3.10+ from https://www.python.org/downloads/.
+2. Install Python and check the box `Add Python to PATH`.
+3. Open PowerShell and run:
+   ```powershell
+   python --version
+   ```
+
+## Step 2: Create a virtual environment
+From the project root folder (`c:\EduCore`):
+
+```powershell
+python -m venv venv
+venv\Scripts\activate
+```
+
+## Step 3: Install project dependencies
+
+```powershell
+pip install -r requirements.txt
+```
+
+## Step 4: Install MySQL Server
+1. Download MySQL Installer from https://dev.mysql.com/downloads/installer/.
+2. Install the server and choose **Developer Default** or **Server Only**.
+3. Make a note of the root password you choose.
+4. Make sure the MySQL service is running.
+
+## Step 5: Configure MySQL credentials in `.env`
+1. Make a copy of `.env.example` and name it `.env`.
+2. Open `.env` with a text editor (Notepad, VS Code, etc.).
+3. Find these lines and set them with your MySQL root password:
+
+```text
+MYSQL_ROOT_USER=root
+MYSQL_ROOT_PASSWORD=your_root_password
+MYSQL_DATABASE=cms_db
+MYSQL_USER=cms_user
+MYSQL_PASSWORD=secure_password
+```
+
+Replace `your_root_password` with the MySQL root password you set during MySQL installation.
+
+## Step 6: Create the MySQL database and user
+Instead of manually running SQL commands, you can use the helper script:
+
+```powershell
+python scripts\create_mysql_db.py
+```
+
+This script will automatically create the database and user based on your `.env` settings.
+
+If the script fails, you can create them manually by opening a terminal and typing:
+
+```powershell
+mysql -u root -p
+```
+
+Then paste these commands:
+
+```sql
+CREATE DATABASE cms_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON cms_db.* TO 'cms_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+Replace `secure_password` with something safe.
+
+## Step 7: Configure the application
+Set the application database URL in `.env`:
+
+```text
+DATABASE_URL=mysql+pymysql://cms_user:secure_password@localhost:3306/cms_db
+```
+
+## Step 8: Start the app
+
+```powershell
+python run.py
+```
+
+Then open your browser at `http://localhost:8000`.
+
+## Step 9: Login to the app
+The project seeds demo users by default. Use:
+
+- Email: `admin@cms.edu`
+- Password: `admin123`
+
+## Notes
+- The project uses MySQL exclusively; SQLite is not supported.
+- For reference on past SQLite→MySQL migration steps, see `Migration.readme`.

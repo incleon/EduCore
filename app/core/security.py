@@ -230,3 +230,37 @@ class JWTHandler:
             cls._secret_key,
             algorithm=cls._algorithm,
         )
+
+
+class CaptchaHandler:
+    """Simple server-side captcha generation and verification."""
+
+    _secret_key: str = settings.SECRET_KEY
+    _algorithm: str = settings.ALGORITHM
+    _expire_minutes: int = 5
+
+    @classmethod
+    def create_challenge(cls):
+        import random
+        import string
+
+        # Generate an alphanumeric mixed-case token (6 chars)
+        alphabet = string.ascii_letters + string.digits
+        token_text = ''.join(random.choice(alphabet) for _ in range(6))
+
+        payload = {
+            "answer": token_text,
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=cls._expire_minutes),
+        }
+
+        token = jwt.encode(payload, cls._secret_key, algorithm=cls._algorithm)
+        # Return token_text (rendered as captcha) and signed token
+        return token_text, token
+
+    @classmethod
+    def verify(cls, token: str, submitted_answer: str) -> bool:
+        try:
+            payload = jwt.decode(token, cls._secret_key, algorithms=[cls._algorithm])
+            return str(submitted_answer or "").strip() == str(payload.get("answer", "")).strip()
+        except Exception:
+            return False

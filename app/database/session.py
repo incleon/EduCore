@@ -15,7 +15,7 @@ Why a separate session module?
 - Session lifecycle managed centrally
 """
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -27,35 +27,22 @@ logger = get_logger(__name__)
 # The engine is created once when this module is first imported.
 # Python's module system ensures it's only created once (singleton).
 
-import os
-
-# Resolve SQLite relative path (./cms.db) to an absolute path so data isn't lost
-# if the server is started from a different working directory.
+# Use application's DATABASE_URL (MySQL by default).
 db_url = settings.DATABASE_URL
-if db_url.startswith("sqlite:///./"):
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    db_name = db_url.replace("sqlite:///./", "")
-    db_url = f"sqlite:///{os.path.join(base_dir, db_name)}"
 
-# SQLite-specific: check_same_thread=False allows multi-threaded access
+# MySQL uses standard connection args
 connect_args = {}
-if db_url.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
     db_url,
     connect_args=connect_args,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
     pool_pre_ping=True,   # Verify connections before use
+    pool_size=10,         # Number of connections to keep in the pool
+    max_overflow=20,      # Maximum overflow connections above pool_size
+    pool_recycle=3600,    # Recycle connections after 1 hour (MySQL default)
+    pool_timeout=30,      # Timeout waiting for a connection
 )
-
-# Enable foreign key enforcement for SQLite
-if settings.DATABASE_URL.startswith("sqlite"):
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
 
 # ── FACTORY PATTERN ──────────────────────────────────────────
 # SessionLocal is a FACTORY — each call creates a new Session instance.

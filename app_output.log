@@ -1,7 +1,7 @@
 INFO:     Started server process [174845]
 INFO:     Waiting for application startup.
 2026-06-19 19:07:14 | INFO     | cms.app.main              | Starting Enterprise College Management System v1.0.0
-2026-06-19 19:07:14 | INFO     | cms.app.database.session  | Database initialized: sqlite:///./cms.db
+2026-06-19 19:07:14 | INFO     | cms.app.database.session  | Database initialized: mysql+pymysql://cms_user:secure_password@127.0.0.1:3306/cms_db
 2026-06-19 19:07:14 | INFO     | cms.app.database.seed     | Database already seeded — skipping
 2026-06-19 19:07:14 | INFO     | cms.app.main              | Application started successfully!
 2026-06-19 19:07:14 | INFO     | cms.app.main              | API docs: http://localhost:8000/docs
