@@ -42,7 +42,7 @@ The codebase is structured for enterprise scalability using advanced Object-Orie
 | **Backend Framework** | FastAPI (Python) |
 | **Templating Engine** | Jinja2 |
 | **Database ORM** | SQLAlchemy |
-| **Database System** | SQLite (Production ready via PostgreSQL/MySQL Migration scripts) |
+| **Database System** | MySQL / MariaDB |
 | **Frontend Styling** | Vanilla CSS, Bootstrap 5, Bootstrap Icons |
 | **Typography** | Google Fonts (DM Sans) |
 
@@ -63,6 +63,12 @@ pip install -r requirements.txt
 
 ### 3. Environment Configuration
 Create a `.env` file in the root directory (use `.env.example` as a template) and configure your database and email SMTP settings.
+
+> For Gmail, set `MAIL_PASSWORD` to a valid SMTP app password. The app defaults to `MAIL_PORT=587`, `MAIL_STARTTLS=True`, and `MAIL_SSL_TLS=False`.
+
+> For beginner-friendly setup instructions, see `DATABASE_SETUP.readme`.
+> For more information, see `DATABASE_SETUP.readme` and `Migration.readme`.
+> For automatic MySQL user/database creation, run `python scripts\create_mysql_db.py` after configuring `.env`.
 
 ### 4. Database Initialization
 Seed the database with initial academic structures, roles, permissions, and 100+ realistic faculty records:
