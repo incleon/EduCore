@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: cms_db
+      MYSQL_USER: cms_user
+      MYSQL_PASSWORD: secure_password
+      MYSQL_ROOT_PASSWORD: change_me
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pchange_me"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: mysql+pymysql://cms_user:secure_password@db:3306/cms_db
+      DEBUG: "False"
+      CORS_ORIGINS: http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  mysql_data:
+  uploads:

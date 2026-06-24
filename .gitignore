@@ -15,9 +15,16 @@ env/
 
 # Environment Variables
 .env
+*.env.local
 
 # Database
 *.db
+*.sqlite3
+
+# Node / frontend
+node_modules/
+frontend/dist/
+npm-debug.log*
 
 # Uploads
 uploads/*
@@ -36,6 +43,11 @@ logs/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Local runtime output
+*.log
+*.out.log
+*.err.log
 
 # Alembic
 alembic/versions/*.pyc
