@@ -18,7 +18,7 @@ const display = (value, path) => {
   return humanize(value)
 }
 
-export default function ResourcePage({ config }) {
+export default function ResourcePage({ config, forcedFilters = {} }) {
   const { can } = useAuth()
   const formConfig = resourceForms[config.slug]
   const canManage = Boolean(formConfig && can(formConfig.permission))
@@ -55,7 +55,7 @@ export default function ResourcePage({ config }) {
     setLoading(true); setError('')
     const params = new URLSearchParams({ page: String(meta.page), page_size: '10' })
     if (debounced && searchableResources.includes(config.slug)) params.set('search', debounced)
-    if (hierarchyResource) Object.entries(hierarchy).forEach(([key, value]) => value && params.set(key, value))
+    if (hierarchyResource) Object.entries({ ...hierarchy, ...forcedFilters }).forEach(([key, value]) => value && params.set(key, value))
     api.get(`${config.endpoint}?${params}`).then((payload) => {
       const items = Array.isArray(payload) ? payload : payload?.items || []
       setRecords(items); setMeta((current) => ({ ...current, total: payload?.total ?? items.length, page_size: payload?.page_size ?? 10 }))

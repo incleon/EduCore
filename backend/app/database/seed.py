@@ -25,7 +25,7 @@ from app.models.academic import (
 from app.models.attendance import Attendance, AttendanceStatus
 from app.models.course import Course
 from app.models.department import Department
-from app.models.fee import Fee, FeeStatus, FeeType
+from app.models.finance import StudentFee, FeeStatus
 from app.models.library import BookIssue, IssueStatus, LibraryBook
 from app.models.marks import ExamType, Marks
 from app.models.student import Student
@@ -173,7 +173,7 @@ def seed_demo_data(db: Session) -> None:
         "departments", "courses", "branches", "curricula", "curriculum_versions",
         "academic_semesters", "sections", "subjects", "curriculum_subjects",
         "elective_groups", "student_electives", "faculty_assignments", "students",
-        "teachers", "attendances", "marks", "fees", "library_books", "book_issues",
+        "teachers", "attendances", "marks", "student_fees",
         "timetable_versions", "timetable_slots",
     )
     counts = [db.execute(text(f"SELECT COUNT(*) FROM `{table}`")).scalar_one() for table in target_tables]
@@ -306,20 +306,20 @@ def seed_demo_data(db: Session) -> None:
             db.add(Attendance(student_id=student.id, subject_id=subjects[0].id, teacher_id=teachers[0].id, section_id=sections[0].id, faculty_assignment_id=assignments[0].id, date=date.today()-timedelta(days=index), status=AttendanceStatus.PRESENT if index != 3 else AttendanceStatus.ABSENT))
         if not db.query(Marks).filter_by(student_id=student.id, subject_id=subjects[0].id, exam_type=ExamType.INTERNAL).first():
             db.add(Marks(student_id=student.id, subject_id=subjects[0].id, exam_type=ExamType.INTERNAL, marks_obtained=72+index, max_marks=100, semester=1, remarks="Satisfactory progress"))
-        if not db.query(Fee).filter_by(receipt_number=f"DEMO-{year}-{index+1:03d}").first():
-            db.add(Fee(student_id=student.id, fee_type=FeeType.TUITION, amount=75000, paid_amount=75000 if index < 6 else 25000, due_date=date(year, 8, 31), paid_date=date(year, 8, 10) if index < 6 else None, status=FeeStatus.PAID if index < 6 else FeeStatus.PARTIAL, semester=1, receipt_number=f"DEMO-{year}-{index+1:03d}", payment_method="UPI"))
+        if not db.query(StudentFee).filter_by(student_id=student.id).first():
+            db.add(StudentFee(student_id=student.id, title="Tuition Fee", amount=75000, due_date=date(year, 8, 31), status=FeeStatus.PAID if index < 6 else FeeStatus.PARTIAL))
     logger.info("Demo seed: student operations ready")
 
-    books = []
-    for index in range(10):
-        isbn = f"978000000{index:04d}"
-        book = db.query(LibraryBook).options(noload("*")).filter_by(isbn=isbn).first()
-        if not book:
-            book = LibraryBook(title=f"University Reference Volume {index+1}", author=f"Author {faculty_names[index]}", isbn=isbn, publisher="EduCore Press", edition="2nd", category=branch_data[index][0], total_copies=5, available_copies=4, shelf_location=f"A-{index+1:02d}")
-            db.add(book); db.flush()
-        books.append(book)
-        if index < len(students) and not db.query(BookIssue).filter_by(book_id=book.id, student_id=students[index].id).first():
-            db.add(BookIssue(book_id=book.id, student_id=students[index].id, issue_date=date.today()-timedelta(days=5), due_date=date.today()+timedelta(days=9), status=IssueStatus.ISSUED))
+    # books = []
+    # for index in range(10):
+    #     isbn = f"978000000{index:04d}"
+    #     book = db.query(LibraryBook).options(noload("*")).filter_by(isbn=isbn).first()
+    #     if not book:
+    #         book = LibraryBook(title=f"University Reference Volume {index+1}", author=f"Author {faculty_names[index]}", isbn=isbn, publisher="EduCore Press", edition="2nd", category=branch_data[index][0], total_copies=5, available_copies=4, shelf_location=f"A-{index+1:02d}")
+    #         db.add(book); db.flush()
+    #     books.append(book)
+    #     if index < len(students) and not db.query(BookIssue).filter_by(book_id=book.id, student_id=students[index].id).first():
+    #         db.add(BookIssue(book_id=book.id, student_id=students[index].id, issue_date=date.today()-timedelta(days=5), due_date=date.today()+timedelta(days=9), status=IssueStatus.ISSUED))
 
     for index in range(10):
         version = db.query(TimetableVersion).options(noload("*")).filter_by(course_id=courses[index].id, branch_scope_key=branches[index].id, semester=1, section_scope_key=sections[index].id).first()

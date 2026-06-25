@@ -1,5 +1,4 @@
-import { BookOpen, Building2, CalendarCheck2, GitBranch, GraduationCap, History, Layers3, Library, ListTree, ReceiptIndianRupee, ScrollText, Shapes, UserCog, UsersRound } from 'lucide-react'
-
+import { BookOpen, Building2, CalendarCheck2, GitBranch, GraduationCap, History, Layers3, Library, ListTree, ReceiptIndianRupee, ScrollText, Shapes, UserCog, UsersRound, Tags, PenTool, Printer, Bookmark, Users, Wallet, Banknote, Landmark, TrendingDown, WalletCards } from 'lucide-react'
 export const resourceConfigs = [
   {
     slug: 'students', label: 'Students', eyebrow: 'People', icon: GraduationCap,
@@ -77,14 +76,74 @@ export const resourceConfigs = [
     columns: [['student.user.full_name', 'Student'], ['subject.name', 'Subject'], ['exam_type', 'Assessment'], ['marks_obtained', 'Score'], ['max_marks', 'Maximum']],
   },
   {
-    slug: 'fees', label: 'Fees', eyebrow: 'Operations', icon: ReceiptIndianRupee,
-    endpoint: '/api/fees', permission: 'view_fees', description: 'Fee schedules, collections and outstanding balances.',
-    columns: [['student.user.full_name', 'Student'], ['fee_type', 'Type'], ['amount', 'Amount'], ['paid_amount', 'Paid'], ['due_date', 'Due date'], ['status', 'Status']],
+    slug: 'fee-structures', label: 'Fee Structures', eyebrow: 'Finance', icon: Landmark,
+    endpoint: '/api/finance/fee-structures', permission: 'view_fees', description: 'Define fee amounts by course and year.',
+    columns: [['name', 'Name'], ['amount', 'Amount'], ['course.name', 'Course'], ['academic_year', 'Academic Year'], ['semester', 'Semester']],
   },
   {
-    slug: 'library', label: 'Library', eyebrow: 'Operations', icon: Library,
+    slug: 'student-fees', label: 'Invoices', eyebrow: 'Finance', icon: ScrollText,
+    endpoint: '/api/finance/student-fees', permission: 'view_fees', description: 'Student fee invoices and balances.',
+    columns: [['student.user.full_name', 'Student'], ['title', 'Title'], ['amount', 'Amount'], ['balance', 'Balance'], ['status', 'Status']],
+  },
+  {
+    slug: 'fee-collection', label: 'Point of Sale', eyebrow: 'Finance', icon: WalletCards,
+    permission: 'manage_fees', description: 'Collect fees from students.',
+    columns: [], // Custom page
+  },
+  {
+    slug: 'payments', label: 'Payments', eyebrow: 'Finance', icon: Wallet,
+    endpoint: '/api/finance/payments', permission: 'view_fees', description: 'Recorded fee payments.',
+    columns: [['student_fee.student.user.full_name', 'Student'], ['amount', 'Amount'], ['payment_date', 'Date'], ['payment_method', 'Method'], ['transaction_reference', 'Ref']],
+  },
+  {
+    slug: 'expenses', label: 'Expenses', eyebrow: 'Finance', icon: TrendingDown,
+    endpoint: '/api/finance/expenses', permission: 'view_fees', description: 'School operational expenses.',
+    columns: [['title', 'Title'], ['category.name', 'Category'], ['amount', 'Amount'], ['expense_date', 'Date'], ['payment_method', 'Method']],
+  },
+  {
+    slug: 'staff-salaries', label: 'Staff Salaries', eyebrow: 'Finance', icon: Banknote,
+    endpoint: '/api/finance/salaries', permission: 'view_fees', description: 'Staff and faculty salary payouts.',
+    columns: [['user.full_name', 'Staff'], ['amount', 'Amount'], ['payment_date', 'Date'], ['payment_method', 'Method'], ['status', 'Status']],
+  },
+  {
+    slug: 'library', label: 'Library Catalog', eyebrow: 'Operations', icon: Library,
     endpoint: '/api/library/books', permission: 'view_library', description: 'Catalogue availability and lending inventory.',
-    columns: [['isbn', 'ISBN'], ['title', 'Title'], ['author', 'Author'], ['category', 'Category'], ['available_copies', 'Available']],
+    columns: [['isbn', 'ISBN'], ['title', 'Title'], ['author', 'Author'], ['category', 'Category'], ['available_copies', 'Available'], ['price', 'Price']],
+  },
+  {
+    slug: 'book-issues', label: 'Issues & Returns', eyebrow: 'Operations', icon: History,
+    endpoint: '/api/library/issues', permission: 'view_library', description: 'Active checkouts, overdues and history.',
+    columns: [['book_title', 'Book'], ['student_name', 'Student'], ['issue_date', 'Issued On'], ['due_date', 'Due Date'], ['status', 'Status'], ['fine_amount', 'Fine']],
+  },
+  {
+    slug: 'library-categories', label: 'Categories', eyebrow: 'Operations', icon: Tags,
+    endpoint: '/api/library/categories', permission: 'view_library', description: 'Book categories and subjects.',
+    columns: [['name', 'Name'], ['description', 'Description']],
+  },
+  {
+    slug: 'library-authors', label: 'Authors', eyebrow: 'Operations', icon: PenTool,
+    endpoint: '/api/library/authors', permission: 'view_library', description: 'Book authors.',
+    columns: [['name', 'Name'], ['bio', 'Bio']],
+  },
+  {
+    slug: 'library-publishers', label: 'Publishers', eyebrow: 'Operations', icon: Printer,
+    endpoint: '/api/library/publishers', permission: 'view_library', description: 'Book publishers.',
+    columns: [['name', 'Name'], ['contact_email', 'Email']],
+  },
+  {
+    slug: 'library-members', label: 'Members', eyebrow: 'Operations', icon: Users,
+    endpoint: '/api/library/members', permission: 'view_library', description: 'Library memberships.',
+    columns: [['membership_id', 'Membership ID'], ['user.full_name', 'Member'], ['member_type', 'Type'], ['status', 'Status']],
+  },
+  {
+    slug: 'library-reservations', label: 'Reservations', eyebrow: 'Operations', icon: Bookmark,
+    endpoint: '/api/library/reservations', permission: 'view_library', description: 'Book reservations.',
+    columns: [['book.title', 'Book'], ['member.user.full_name', 'Member'], ['reservation_date', 'Date'], ['status', 'Status']],
+  },
+  {
+    slug: 'library-fines', label: 'Fines', eyebrow: 'Operations', icon: ReceiptIndianRupee,
+    endpoint: '/api/library/fines', permission: 'view_library', description: 'Library fines and payments.',
+    columns: [['member.user.full_name', 'Member'], ['amount', 'Amount'], ['reason', 'Reason'], ['is_paid', 'Paid']],
   },
 ]
 

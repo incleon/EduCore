@@ -177,19 +177,12 @@ class Student(BaseModel):
 
     # ONE-TO-MANY: Student has many fee records
     fee_records = relationship(
-        "Fee",
+        "StudentFee",
         back_populates="student",
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
 
-    # ONE-TO-MANY: Student has many book issues
-    book_issues = relationship(
-        "BookIssue",
-        back_populates="student",
-        cascade="all, delete-orphan",
-        lazy="dynamic",
-    )
 
     elective_selections = relationship(
         "StudentElective",

@@ -58,24 +58,40 @@ def logout(response: Response):
 @router.get("/me")
 def get_current_user_info(current_user=Depends(get_current_user)):
     """Get current authenticated user's info."""
+    is_hod = False
+    hod_branch_ids = []
+    hod_branch_names = []
+    if getattr(current_user, "teacher", None) and getattr(current_user.teacher, "branch_hod", None):
+        is_hod = len(current_user.teacher.branch_hod) > 0
+        hod_branch_ids = [b.id for b in current_user.teacher.branch_hod]
+        hod_branch_names = [b.name for b in current_user.teacher.branch_hod]
     return {
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
         "roles": current_user.roles,
         "permissions": current_user.permissions,
+        "is_hod": is_hod,
+        "hod_branch_ids": hod_branch_ids,
+        "hod_branch_names": hod_branch_names,
     }
 
 
 @router.get("/profile")
 def get_profile(current_user=Depends(get_current_user)):
     """Return the signed-in account plus its role-specific, non-sensitive profile."""
+    is_hod = False
+    hod_branch_ids = []
+    if getattr(current_user, "teacher", None) and getattr(current_user.teacher, "branch_hod", None):
+        is_hod = len(current_user.teacher.branch_hod) > 0
+        hod_branch_ids = [b.id for b in current_user.teacher.branch_hod]
     payload = {
         "id": current_user.id, "email": current_user.email,
         "username": current_user.username, "full_name": current_user.full_name,
         "phone": current_user.phone, "gender": current_user.gender.value if current_user.gender else None,
         "address": current_user.address, "profile_image": current_user.profile_image,
         "roles": current_user.roles, "permissions": current_user.permissions,
+        "is_hod": is_hod, "hod_branch_ids": hod_branch_ids,
         "created_at": current_user.created_at,
     }
     if current_user.student:

@@ -70,6 +70,14 @@ class Teacher(BaseModel):
     branch = relationship(
         "Branch",
         back_populates="faculty",
+        foreign_keys=[branch_id],
+        lazy="selectin",
+    )
+
+    branch_hod = relationship(
+        "Branch",
+        back_populates="hod",
+        foreign_keys="[Branch.hod_id]",
         lazy="selectin",
     )
 

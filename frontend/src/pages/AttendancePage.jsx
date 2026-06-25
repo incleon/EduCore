@@ -196,7 +196,7 @@ function StudentAttendanceCalendar() {
   )
 }
 
-export default function AttendancePage() {
+export default function AttendancePage({ forcedFilters = {} }) {
   const { user } = useAuth()
   
   if (user?.roles?.includes('student')) {
@@ -204,5 +204,5 @@ export default function AttendancePage() {
   }
 
   const config = resourceConfigs.find((c) => c.slug === 'attendance')
-  return <ResourcePage config={config} />
+  return <ResourcePage config={config} forcedFilters={forcedFilters} />
 }

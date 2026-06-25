@@ -49,6 +49,7 @@ Thumbs.db
 *.out.log
 *.err.log
 
+
 # Alembic
 alembic/versions/*.pyc
 
@@ -56,3 +57,9 @@ alembic/versions/*.pyc
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Internal documentation
+SIDEBAR_ROLES_ANALYSIS.md
+PPT.md
+DEPLOYMENT.md
+CURRICULUM_README.md

@@ -35,10 +35,11 @@ def list_subject_types(db: Session = Depends(get_db), current_user=Depends(Permi
 
 
 @router.get("/branches")
-def list_branches(course_id: int | None = None, department_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_branches(course_id: int | None = None, department_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
     query = db.query(Branch).join(Course).filter(Branch.is_deleted.is_(False))
     if course_id: query = query.filter(Branch.course_id == course_id)
     if department_id: query = query.filter(Course.department_id == department_id)
+    if branch_id: query = query.filter(Branch.id == branch_id)
     return {"items": [_branch(item) for item in query.order_by(Branch.id.desc()).all()]}
 
 
@@ -84,8 +85,11 @@ def delete_curriculum(curriculum_id: int, db: Session = Depends(get_db), current
 
 
 @router.get("/curriculum-versions")
-def list_curriculum_versions(curriculum_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
-    return {"items": [_version(item) for item in service(db).list_records(CurriculumVersion, curriculum_id=curriculum_id)]}
+def list_curriculum_versions(curriculum_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+    query = db.query(CurriculumVersion).join(Curriculum).filter(CurriculumVersion.is_deleted.is_(False))
+    if curriculum_id: query = query.filter(CurriculumVersion.curriculum_id == curriculum_id)
+    if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
+    return {"items": [_version(item) for item in query.order_by(CurriculumVersion.id.desc()).all()]}
 
 
 @router.post("/curriculum-versions", status_code=201)
@@ -105,8 +109,11 @@ def delete_curriculum_version(version_id: int, db: Session = Depends(get_db), cu
 
 
 @router.get("/semesters")
-def list_semesters(curriculum_version_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
-    return {"items": [_semester(item) for item in service(db).list_records(AcademicSemester, curriculum_version_id=curriculum_version_id)]}
+def list_semesters(curriculum_version_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+    query = db.query(AcademicSemester).join(CurriculumVersion).join(Curriculum).filter(AcademicSemester.is_deleted.is_(False))
+    if curriculum_version_id: query = query.filter(AcademicSemester.curriculum_version_id == curriculum_version_id)
+    if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
+    return {"items": [_semester(item) for item in query.order_by(AcademicSemester.id.desc()).all()]}
 
 
 @router.post("/semesters", status_code=201)
@@ -152,8 +159,11 @@ def delete_section(section_id: int, db: Session = Depends(get_db), current_user=
 
 
 @router.get("/elective-groups")
-def list_elective_groups(semester_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
-    return {"items": [_elective_group(item) for item in service(db).list_records(ElectiveGroup, semester_id=semester_id)]}
+def list_elective_groups(semester_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+    query = db.query(ElectiveGroup).join(AcademicSemester).join(CurriculumVersion).join(Curriculum).filter(ElectiveGroup.is_deleted.is_(False))
+    if semester_id: query = query.filter(ElectiveGroup.semester_id == semester_id)
+    if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
+    return {"items": [_elective_group(item) for item in query.order_by(ElectiveGroup.id.desc()).all()]}
 
 
 @router.post("/elective-groups", status_code=201)
@@ -194,11 +204,20 @@ def delete_curriculum_subject(mapping_id: int, db: Session = Depends(get_db), cu
 
 
 @router.get("/faculty-assignments")
-def list_faculty_assignments(section_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_faculty_assignments(section_id: int | None = None, branch_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
     filters = {"section_id": section_id, "academic_year": academic_year}
     if is_scoped_faculty(current_user):
         filters["teacher_id"] = current_user.teacher.id
-    return {"items": [_faculty_assignment(item) for item in service(db).list_records(FacultyAssignment, **filters)]}
+    
+    query = db.query(FacultyAssignment).filter(FacultyAssignment.is_deleted.is_(False))
+    for key, value in filters.items():
+        if value is not None:
+            query = query.filter(getattr(FacultyAssignment, key) == value)
+            
+    if branch_id:
+        query = query.join(Section).filter(Section.branch_id == branch_id)
+        
+    return {"items": [_faculty_assignment(item) for item in query.order_by(FacultyAssignment.id.desc()).all()]}
 
 
 @router.post("/faculty-assignments", status_code=201)
@@ -243,7 +262,7 @@ def _subject_type(item):
 
 
 def _branch(item):
-    return {"id": item.id, "course_id": item.course_id, "department_id": item.course.department_id, "department": {"id": item.course.department.id, "name": item.course.department.name} if item.course.department else None, "course": {"id": item.course.id, "name": item.course.name, "code": item.course.code}, "name": item.name, "code": item.code, "description": item.description}
+    return {"id": item.id, "course_id": item.course_id, "department_id": item.course.department_id, "department": {"id": item.course.department.id, "name": item.course.department.name} if item.course.department else None, "course": {"id": item.course.id, "name": item.course.name, "code": item.course.code}, "name": item.name, "code": item.code, "description": item.description, "hod_id": item.hod_id, "hod": {"id": item.hod.id, "name": item.hod.user.full_name} if item.hod and item.hod.user else ({"id": item.hod.id, "name": item.hod.employee_id} if item.hod else None)}
 
 
 def _curriculum(item):

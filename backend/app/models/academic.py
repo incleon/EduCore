@@ -26,11 +26,13 @@ class Branch(BaseModel):
     name = Column(String(200), nullable=False)
     code = Column(String(30), nullable=False)
     description = Column(Text, nullable=True)
+    hod_id = Column(Integer, ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
 
     course = relationship("Course", back_populates="branches", lazy="selectin")
     curricula = relationship("Curriculum", back_populates="branch")
     students = relationship("Student", back_populates="branch", lazy="dynamic")
-    faculty = relationship("Teacher", back_populates="branch", lazy="dynamic")
+    faculty = relationship("Teacher", foreign_keys="Teacher.branch_id", back_populates="branch", lazy="dynamic")
+    hod = relationship("Teacher", foreign_keys=[hod_id], back_populates="branch_hod", lazy="selectin")
 
 
 class SubjectType(BaseModel):

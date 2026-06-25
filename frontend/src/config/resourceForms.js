@@ -12,6 +12,9 @@ const subjectTypes = { endpoint: '/api/academic/subject-types', value: 'id', lab
 const electiveGroups = { endpoint: '/api/academic/elective-groups', value: 'id', label: 'name' }
 const curriculumSubjects = { endpoint: '/api/academic/curriculum-subjects', value: 'id', label: 'subject.name' }
 const facultyAssignments = { endpoint: '/api/academic/faculty-assignments', value: 'id', label: 'subject.name', fallback: 'academic_year' }
+const feeStructures = { endpoint: '/api/finance/fee-structures?page=1&page_size=100', value: 'id', label: 'name' }
+const expenseCategories = { endpoint: '/api/finance/expense-categories?page=1&page_size=100', value: 'id', label: 'name' }
+const studentFees = { endpoint: '/api/finance/student-fees?page=1&page_size=100', value: 'id', label: 'title' }
 
 const field = (name, label, type = 'text', extra = {}) => ({ name, label, type, ...extra })
 
@@ -45,18 +48,20 @@ export const resourceForms = {
   teachers: {
     permission: 'manage_teachers', noun: 'faculty member',
     create: [
-      field('full_name', 'Full name', 'text', { required: true, wide: true }), field('email', 'Institutional email', 'email', { required: true }),
-      field('username', 'Username', 'text', { required: true }), field('password', 'Temporary password', 'password', { required: true, minLength: 8 }),
+      field('full_name', 'Full name', 'text', { required: true, wide: true }), 
+      field('email', 'Institutional email', 'email', { readOnly: true, disabled: true, placeholder: 'Auto-generated on creation' }),
+      field('username', 'Username', 'text', { readOnly: true, disabled: true, placeholder: 'Auto-generated on creation' }),
+      field('password', 'Temporary password', 'password', { readOnly: true, disabled: true, placeholder: 'Auto-generated on creation' }),
       field('phone', 'Phone'), field('gender', 'Gender', 'select', { choices: ['male', 'female', 'other'] }),
-      field('employee_id', 'Employee ID'), field('department_id', 'Department', 'select', { required: true, options: departments }),
+      field('employee_id', 'Employee ID', 'text', { readOnly: true, disabled: true, placeholder: 'Auto-generated if blank' }), field('department_id', 'Department', 'select', { required: true, options: departments }),
       field('branch_id', 'Branch / specialization', 'select', { options: branches }),
-      field('designation', 'Designation'), field('specialization', 'Specialization'), field('qualification', 'Qualification'),
+      field('designation', 'Designation', 'select', { choices: ['Professor', 'Assistant Professor', 'Associate Professor'], required: true }), field('specialization', 'Specialization'), field('qualification', 'Qualification'),
       field('joining_date', 'Joining date', 'date'), field('experience_years', 'Experience (years)', 'number', { min: 0, defaultValue: 0 }),
       field('bio', 'Bio', 'textarea', { wide: true }),
     ],
     edit: [
       field('full_name', 'Full name', 'text', { source: 'user.full_name', wide: true }), field('phone', 'Phone', 'text', { source: 'user.phone' }),
-      field('department_id', 'Department', 'select', { options: departments }), field('designation', 'Designation'),
+      field('department_id', 'Department', 'select', { options: departments }), field('designation', 'Designation', 'select', { choices: ['Professor', 'Assistant Professor', 'Associate Professor'] }),
       field('branch_id', 'Branch / specialization', 'select', { options: branches }),
       field('specialization', 'Specialization'), field('qualification', 'Qualification'),
       field('experience_years', 'Experience (years)', 'number', { min: 0 }), field('bio', 'Bio', 'textarea', { wide: true }),
@@ -79,8 +84,8 @@ export const resourceForms = {
   },
   branches: {
     permission: 'manage_academic_structure', noun: 'branch',
-    create: [field('course_id', 'Program / course', 'select', { required: true, options: courses }), field('name', 'Branch / specialization name', 'text', { required: true }), field('code', 'Code', 'text', { required: true }), field('description', 'Description', 'textarea', { wide: true })],
-    edit: [field('name', 'Branch / specialization name'), field('code', 'Code'), field('description', 'Description', 'textarea', { wide: true })],
+    create: [field('course_id', 'Program / course', 'select', { required: true, options: courses }), field('name', 'Branch / specialization name', 'text', { required: true }), field('code', 'Code', 'text', { required: true }), field('hod_id', 'Head of Department', 'select', { options: teachers }), field('description', 'Description', 'textarea', { wide: true })],
+    edit: [field('name', 'Branch / specialization name'), field('code', 'Code'), field('hod_id', 'Head of Department', 'select', { options: teachers }), field('description', 'Description', 'textarea', { wide: true })],
   },
   curricula: {
     permission: 'manage_curriculum', noun: 'curriculum',
@@ -127,10 +132,30 @@ export const resourceForms = {
     create: [field('student_id', 'Student', 'select', { required: true, options: students }), field('subject_id', 'Subject', 'select', { required: true, options: subjects }), field('exam_type', 'Assessment', 'select', { required: true, choices: ['quiz', 'assignment', 'midterm', 'final', 'practical'] }), field('marks_obtained', 'Marks obtained', 'number', { required: true, min: 0, step: '0.01' }), field('max_marks', 'Maximum marks', 'number', { required: true, min: 1, defaultValue: 100, step: '0.01' }), field('semester', 'Semester', 'number', { required: true, min: 1, max: 8 }), field('remarks', 'Remarks', 'textarea', { wide: true })],
     edit: [field('marks_obtained', 'Marks obtained', 'number', { min: 0, step: '0.01' }), field('max_marks', 'Maximum marks', 'number', { min: 1, step: '0.01' }), field('remarks', 'Remarks', 'textarea', { wide: true })],
   },
-  fees: {
-    permission: 'manage_fees', noun: 'fee record',
-    create: [field('student_id', 'Student', 'select', { required: true, options: students }), field('fee_type', 'Fee type', 'select', { required: true, choices: ['tuition', 'exam', 'library', 'hostel', 'transport', 'other'] }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('due_date', 'Due date', 'date'), field('semester', 'Semester', 'number', { required: true, min: 1, max: 8 }), field('remarks', 'Remarks', 'textarea', { wide: true })],
-    edit: [field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('due_date', 'Due date', 'date'), field('status', 'Status', 'select', { choices: ['pending', 'partial', 'paid', 'overdue', 'waived'] }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+  'fee-structures': {
+    permission: 'manage_fees', noun: 'fee structure',
+    create: [field('name', 'Structure Name', 'text', { required: true, wide: true }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('course_id', 'Course', 'select', { required: true, options: courses }), field('academic_year', 'Academic Year', 'text', { required: true }), field('semester', 'Semester', 'number', { required: true, min: 1, max: 8 }), field('description', 'Description', 'textarea', { wide: true })],
+    edit: [field('name', 'Structure Name', 'text', { wide: true }), field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('description', 'Description', 'textarea', { wide: true })],
+  },
+  'student-fees': {
+    permission: 'manage_fees', noun: 'student fee invoice',
+    create: [field('student_id', 'Student', 'select', { required: true, options: students }), field('fee_structure_id', 'Fee Structure', 'select', { options: feeStructures }), field('title', 'Invoice Title', 'text', { required: true, wide: true }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('due_date', 'Due date', 'date'), field('status', 'Status', 'select', { choices: ['pending', 'partial', 'paid', 'overdue', 'waived'] }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+    edit: [field('title', 'Invoice Title', 'text', { wide: true }), field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('due_date', 'Due date', 'date'), field('status', 'Status', 'select', { choices: ['pending', 'partial', 'paid', 'overdue', 'waived'] }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+  },
+  payments: {
+    permission: 'manage_fees', noun: 'payment record',
+    create: [field('student_fee_id', 'Invoice', 'select', { required: true, options: studentFees, wide: true }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('payment_date', 'Payment Date', 'date', { required: true }), field('payment_method', 'Payment Method', 'select', { required: true, choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('transaction_reference', 'Transaction Ref', 'text'), field('status', 'Status', 'select', { choices: ['success', 'pending', 'failed', 'refunded'], defaultValue: 'success' }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+    edit: [field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('payment_date', 'Payment Date', 'date'), field('payment_method', 'Payment Method', 'select', { choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('transaction_reference', 'Transaction Ref', 'text'), field('status', 'Status', 'select', { choices: ['success', 'pending', 'failed', 'refunded'] }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+  },
+  expenses: {
+    permission: 'manage_fees', noun: 'expense',
+    create: [field('title', 'Expense Title', 'text', { required: true, wide: true }), field('category_id', 'Category', 'select', { required: true, options: expenseCategories }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('expense_date', 'Expense Date', 'date', { required: true }), field('payment_method', 'Payment Method', 'select', { required: true, choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('reference_number', 'Ref Number', 'text'), field('remarks', 'Remarks', 'textarea', { wide: true })],
+    edit: [field('title', 'Expense Title', 'text', { wide: true }), field('category_id', 'Category', 'select', { options: expenseCategories }), field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('expense_date', 'Expense Date', 'date'), field('payment_method', 'Payment Method', 'select', { choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('reference_number', 'Ref Number', 'text'), field('remarks', 'Remarks', 'textarea', { wide: true })],
+  },
+  'staff-salaries': {
+    permission: 'manage_fees', noun: 'salary payout',
+    create: [field('user_id', 'Staff Member', 'select', { required: true, options: teachers }), field('amount', 'Amount', 'number', { required: true, min: 1, step: '0.01' }), field('payment_date', 'Payment Date', 'date', { required: true }), field('payment_method', 'Payment Method', 'select', { required: true, choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('reference_number', 'Ref Number', 'text'), field('status', 'Status', 'select', { choices: ['pending', 'paid', 'failed'], defaultValue: 'paid' }), field('remarks', 'Remarks', 'textarea', { wide: true })],
+    edit: [field('amount', 'Amount', 'number', { min: 1, step: '0.01' }), field('payment_date', 'Payment Date', 'date'), field('payment_method', 'Payment Method', 'select', { choices: ['cash', 'cheque', 'bank_transfer', 'upi', 'online'] }), field('reference_number', 'Ref Number', 'text'), field('status', 'Status', 'select', { choices: ['pending', 'paid', 'failed'] }), field('remarks', 'Remarks', 'textarea', { wide: true })],
   },
   library: {
     permission: 'manage_library', noun: 'book',

@@ -62,6 +62,14 @@ class AuthService:
 
         logger.info(f"User authenticated successfully: {email}")
 
+        is_hod = False
+        hod_branch_ids = []
+        hod_branch_names = []
+        if getattr(user, "teacher", None) and getattr(user.teacher, "branch_hod", None):
+            is_hod = len(user.teacher.branch_hod) > 0
+            hod_branch_ids = [b.id for b in user.teacher.branch_hod]
+            hod_branch_names = [b.name for b in user.teacher.branch_hod]
+
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -69,6 +77,9 @@ class AuthService:
             "email": user.email,
             "full_name": user.full_name,
             "roles": user.roles,
+            "is_hod": is_hod,
+            "hod_branch_ids": hod_branch_ids,
+            "hod_branch_names": hod_branch_names,
         }
 
     def get_user_by_id(self, user_id: int):

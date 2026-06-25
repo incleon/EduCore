@@ -21,8 +21,11 @@ from app.models.department import Department
 from app.models.subject import Subject, SubjectTeacher
 from app.models.attendance import Attendance
 from app.models.marks import Marks
-from app.models.fee import Fee
-from app.models.library import LibraryBook, BookIssue
+
+from app.models.library import (
+    LibraryBook, BookIssue, LibraryMember, LibraryAuthor, LibraryPublisher,
+    BookCategory, BookReservation, LibraryFine
+)
 from app.models.audit_log import AuditLog
 from app.models.timetable_grid import TimetableVersion, TimetableSlot
 from app.models.notification import Notification
@@ -247,18 +250,28 @@ class TeacherRepository(BaseRepository[Teacher]):
         
         query = (
             self._db.query(Teacher)
-            .join(Department, Teacher.department_id == Department.id)
+            .outerjoin(Department, Teacher.department_id == Department.id)
             .options(joinedload(Teacher.user), joinedload(Teacher.department))
             .filter(Teacher.is_deleted == False)
         )
         
         if course_id:
-            query = query.filter(Department.course_id == course_id)
+            from app.models.course import Course
+            course = self._db.query(Course).get(course_id)
+            if course and course.department_id:
+                query = query.filter(Teacher.department_id == course.department_id)
+                
         if department_id:
             dept = self._db.query(Department).get(department_id)
-            if dept and dept.course.name == "B.TECH":
+            is_btech = False
+            if dept and dept.programs:
+                for prog in dept.programs:
+                    if prog.name == "B.TECH":
+                        is_btech = True
+                        break
+            
+            if is_btech:
                 as_dept = self._db.query(Department).filter(
-                    Department.course_id == dept.course_id,
                     Department.name.ilike("%Applied Sciences%")
                 ).first()
                 if as_dept:
@@ -583,76 +596,7 @@ class MarksRepository(BaseRepository[Marks]):
         )
 
 
-# ══════════════════════════════════════════════════════════════
-# FEE REPOSITORY
-# ══════════════════════════════════════════════════════════════
 
-class FeeRepository(BaseRepository[Fee]):
-    def __init__(self, db: Session):
-        super().__init__(Fee, db)
-
-    def get_student_fees(self, student_id: int) -> List[Fee]:
-        return (
-            self._db.query(Fee)
-            .filter(Fee.student_id == student_id, Fee.is_deleted == False)
-            .order_by(Fee.created_at.desc())
-            .all()
-        )
-
-    def get_filtered_fees(self, course_id: int = None, department_id: int = None, semester: int = None, search: str = None) -> List[Fee]:
-        from app.models.student import Student
-        from app.models.department import Department
-        from app.models.user import User
-        from sqlalchemy import or_
-        
-        query = (
-            self._db.query(Fee)
-            .join(Student, Fee.student_id == Student.id)
-            .join(User, Student.user_id == User.id)
-            .join(Department, Student.department_id == Department.id)
-            .options(joinedload(Fee.student).joinedload(Student.user))
-            .filter(Fee.is_deleted == False)
-        )
-        
-        if course_id:
-            query = query.filter(Department.course_id == course_id)
-        if department_id:
-            query = query.filter(Student.department_id == department_id)
-        if semester:
-            query = query.filter(Fee.semester == semester)
-        if search:
-            query = query.filter(
-                or_(
-                    User.full_name.ilike(f"%{search}%"),
-                    Student.enrollment_number.ilike(f"%{search}%")
-                )
-            )
-            
-        return query.order_by(Fee.created_at.desc()).all()
-
-    def get_pending_fees(self) -> List[Fee]:
-        return (
-            self._db.query(Fee)
-            .options(joinedload(Fee.student).joinedload(Student.user))
-            .filter(Fee.status.in_(["pending", "partial", "overdue"]), Fee.is_deleted == False)
-            .all()
-        )
-
-    def get_total_pending(self) -> float:
-        result = (
-            self._db.query(func.sum(Fee.amount - Fee.paid_amount))
-            .filter(Fee.status.in_(["pending", "partial", "overdue"]), Fee.is_deleted == False)
-            .scalar()
-        )
-        return result or 0.0
-
-    def get_total_collected(self) -> float:
-        result = (
-            self._db.query(func.sum(Fee.paid_amount))
-            .filter(Fee.is_deleted == False)
-            .scalar()
-        )
-        return result or 0.0
 
 
 # ══════════════════════════════════════════════════════════════
@@ -682,17 +626,17 @@ class BookIssueRepository(BaseRepository[BookIssue]):
     def __init__(self, db: Session):
         super().__init__(BookIssue, db)
 
-    def get_active_issues(self, student_id: int = None) -> List[BookIssue]:
+    def get_active_issues(self, member_id: int = None) -> List[BookIssue]:
         query = (
             self._db.query(BookIssue)
             .options(
                 joinedload(BookIssue.book),
-                joinedload(BookIssue.student).joinedload(Student.user),
+                joinedload(BookIssue.member).joinedload(LibraryMember.user),
             )
             .filter(BookIssue.status == "issued", BookIssue.is_deleted == False)
         )
-        if student_id:
-            query = query.filter(BookIssue.student_id == student_id)
+        if member_id:
+            query = query.filter(BookIssue.member_id == member_id)
         return query.all()
 
     def get_overdue_count(self) -> int:
@@ -755,7 +699,24 @@ class TimetableVersionRepository(BaseRepository[TimetableVersion]):
             TimetableVersion.section_id == section_id,
             TimetableVersion.semester == semester,
             TimetableVersion.is_deleted == False
-        ).first()
+        ).order_by(TimetableVersion.version_number.desc()).first()
+
+    def get_all_versions_by_scope(
+        self,
+        department_id: int,
+        course_id: int,
+        semester: int,
+        branch_id: int | None = None,
+        section_id: int | None = None,
+    ) -> List[TimetableVersion]:
+        return self._db.query(TimetableVersion).filter(
+            TimetableVersion.department_id == department_id,
+            TimetableVersion.course_id == course_id,
+            TimetableVersion.branch_id == branch_id,
+            TimetableVersion.section_id == section_id,
+            TimetableVersion.semester == semester,
+            TimetableVersion.is_deleted == False
+        ).order_by(TimetableVersion.version_number.desc()).all()
 
     def get_pending(self) -> List[TimetableVersion]:
         return self._db.query(TimetableVersion).filter(
@@ -807,3 +768,50 @@ class NotificationRepository(BaseRepository[Notification]):
             n.is_read = True
         self._db.commit()
         return len(notifications)
+
+
+class LibraryMemberRepository(BaseRepository[LibraryMember]):
+    def __init__(self, db: Session):
+        super().__init__(LibraryMember, db)
+
+    def get_by_user_id(self, user_id: int) -> Optional[LibraryMember]:
+        return self._db.query(LibraryMember).filter(LibraryMember.user_id == user_id, LibraryMember.is_deleted == False).first()
+
+
+class LibraryAuthorRepository(BaseRepository[LibraryAuthor]):
+    def __init__(self, db: Session):
+        super().__init__(LibraryAuthor, db)
+
+
+class LibraryPublisherRepository(BaseRepository[LibraryPublisher]):
+    def __init__(self, db: Session):
+        super().__init__(LibraryPublisher, db)
+
+
+class BookCategoryRepository(BaseRepository[BookCategory]):
+    def __init__(self, db: Session):
+        super().__init__(BookCategory, db)
+
+
+class BookReservationRepository(BaseRepository[BookReservation]):
+    def __init__(self, db: Session):
+        super().__init__(BookReservation, db)
+
+    def get_active_by_member(self, member_id: int) -> List[BookReservation]:
+        return self._db.query(BookReservation).filter(
+            BookReservation.member_id == member_id,
+            BookReservation.status == "PENDING",
+            BookReservation.is_deleted == False
+        ).all()
+
+
+class LibraryFineRepository(BaseRepository[LibraryFine]):
+    def __init__(self, db: Session):
+        super().__init__(LibraryFine, db)
+
+    def get_unpaid_by_member(self, member_id: int) -> List[LibraryFine]:
+        return self._db.query(LibraryFine).filter(
+            LibraryFine.member_id == member_id,
+            LibraryFine.is_paid == False,
+            LibraryFine.is_deleted == False
+        ).all()

@@ -70,6 +70,7 @@ a { color: inherit; text-decoration: none; }
 .account-copy strong, .account-copy small { display: block; }
 .account-copy strong { font-size: 11.5px; font-weight: 600; }
 .account-copy small { color: var(--muted); font-size: 9.5px; text-transform: capitalize; margin-top: 2px; }
+.account-copy .hod-badge { color: #b8860b; font-weight: 700; letter-spacing: .03em; text-shadow: 0 0 8px rgba(184,134,11,.15); }
 .account-popover { position: absolute; right: 0; top: 48px; width: 170px; padding: 6px; background: white; border: 1px solid var(--line); box-shadow: 0 18px 50px rgba(28,24,36,.13); border-radius: 12px; }
 .account-popover button { display: flex; width: 100%; gap: 9px; align-items: center; border: 0; background: transparent; padding: 9px; border-radius: 8px; font-size: 12px; color: #554f5c; }
 .account-popover button:hover { background: #f7f5f9; }
@@ -116,6 +117,55 @@ a { color: inherit; text-decoration: none; }
 .insight-strip strong { font: 600 12px 'Manrope'; }.insight-strip p { margin: 3px 0 0; color: var(--muted); font-size: 10.5px; }.health-badge { margin-left: auto; border-radius: 20px; background: #edf9f3; color: #348b67; padding: 6px 10px; font-size: 9.5px; display: flex; align-items: center; gap: 6px; }.health-badge i { width: 6px; height: 6px; background: #51b88c; border-radius: 50%; }
 .empty-chart { height: 285px; display: grid; place-content: center; text-align: center; color: var(--muted); font-size: 11px; }.chart-skeleton { height: 80px; display: flex; gap: 11px; align-items: end; justify-content: center; }.chart-skeleton i { width: 26px; border-radius: 5px 5px 0 0; background: #eeebf4; }.chart-skeleton i:nth-child(1) { height: 30% }.chart-skeleton i:nth-child(2) { height: 52% }.chart-skeleton i:nth-child(3) { height: 44% }.chart-skeleton i:nth-child(4) { height: 68% }.chart-skeleton i:nth-child(5) { height: 60% }.chart-skeleton i:nth-child(6) { height: 85% }
 
+/* Student enrollment card */
+.enrollment-card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 15px;
+  box-shadow: 0 8px 30px rgba(0,48,73,.045); margin-bottom: 14px; overflow: hidden;
+}
+.enrollment-header {
+  padding: 18px 22px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(0,48,73,.08);
+}
+.enrollment-header h2 { font: 700 15px 'Manrope'; letter-spacing: -.02em; margin: 0; color: var(--ink); }
+.enrollment-header .eyebrow { margin-bottom: 4px; }
+.enrollment-status {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  color: var(--status-color); background: color-mix(in srgb, var(--status-color) 8%, transparent);
+}
+.enrollment-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--status-color); }
+.enrollment-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+}
+.enrollment-field {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(0,48,73,.06);
+  border-right: 1px solid rgba(0,48,73,.06);
+}
+.enrollment-field:nth-child(4n) { border-right: none; }
+.enrollment-field:nth-last-child(-n+4) { border-bottom: none; }
+.enrollment-field-icon {
+  width: 32px; height: 32px; flex: 0 0 32px;
+  display: grid; place-items: center; border-radius: 8px;
+  background: #fdf0d5; color: #003049;
+}
+.enrollment-field small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .04em; margin-bottom: 4px; }
+.enrollment-field strong { display: block; font: 600 13.5px 'Manrope'; color: var(--ink); letter-spacing: -.01em; }
+
+@media (max-width: 900px) {
+  .enrollment-grid { grid-template-columns: repeat(2, 1fr); }
+  .enrollment-field:nth-child(4n) { border-right: 1px solid rgba(0,48,73,.06); }
+  .enrollment-field:nth-child(2n) { border-right: none; }
+  .enrollment-field:nth-last-child(-n+4) { border-bottom: 1px solid rgba(0,48,73,.06); }
+  .enrollment-field:nth-last-child(-n+2) { border-bottom: none; }
+}
+@media (max-width: 520px) {
+  .enrollment-grid { grid-template-columns: 1fr; }
+  .enrollment-field { border-right: none !important; }
+  .enrollment-field:last-child { border-bottom: none; }
+}
+
 /* Resource tables */
 .resource-panel { overflow: hidden; }
 .table-toolbar { min-height: 66px; padding: 13px 17px; display: flex; align-items: center; gap: 9px; border-bottom: 1px solid var(--line); }
@@ -142,6 +192,9 @@ a { color: inherit; text-decoration: none; }
 .schedule-slot { padding: 9px; display: flex; flex-direction: column; justify-content: center; gap: 3px; color: #aaa4af; }
 .schedule-slot.occupied { background: #fdf0d5; color: #003049; }
 .schedule-slot strong { font-size: 10px; }.schedule-slot span:not(.free-slot) { color: #4f4957; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.schedule-slot small { color: #8b83a2; font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }.free-slot { margin: auto; }
+.schedule-slot.editable-slot { background: rgba(253,240,213,.42); }
+.slot-select { width: 100%; padding: 4px; font-size: 10px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); outline: 0; }
+.slot-select:focus { border-color: var(--violet); box-shadow: 0 0 0 2px rgba(0, 48, 73, 0.1); }
 .notifications-panel { overflow: hidden; }
 .notification-row { min-height: 96px; display: flex; gap: 13px; align-items: flex-start; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 .notification-row:last-child { border: 0; }.notification-row.unread { background: rgba(253,240,213,.45); }
@@ -223,4 +276,48 @@ textarea.modern-input { height: auto; min-height: 80px; padding: 8px 12px; }
   .modal-backdrop.modern { padding: 12px; align-items: center; }
   .form-modal.modern { border-radius: 4px; max-height: calc(100vh - 24px); border-bottom: 1px solid #e2e8f0; }
   .modal-form-grid.modern { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+}
+
+/* Access Denied */
+.access-denied-card {
+  max-width: 420px;
+  margin: 80px auto;
+  text-align: center;
+  padding: 48px 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 48, 73, .06);
+}
+.access-denied-icon {
+  width: 72px; height: 72px;
+  margin: 0 auto 20px;
+  display: grid; place-items: center;
+  background: rgba(229, 62, 62, .08);
+  border-radius: 50%;
+  color: #c53030;
+}
+.access-denied-card h2 {
+  margin: 0 0 8px;
+  font: 600 20px 'Manrope', sans-serif;
+  color: var(--ink);
+}
+.access-denied-card p {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.access-denied-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13.5px; font-weight: 600;
+  color: var(--violet);
+  padding: 10px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: .16s ease;
+}
+.access-denied-link:hover {
+  background: rgba(0, 48, 73, .04);
+  border-color: var(--violet);
 }

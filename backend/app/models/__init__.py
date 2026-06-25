@@ -23,8 +23,13 @@ from app.models.academic import (  # noqa
 )
 from app.models.attendance import Attendance  # noqa
 from app.models.marks import Marks  # noqa
-from app.models.fee import Fee  # noqa
-from app.models.library import LibraryBook, BookIssue  # noqa
+from app.models.finance import (
+    FeeStructure, StudentFee, Payment, Expense, ExpenseCategory, StaffSalary
+)  # noqa
+from app.models.library import (
+    LibraryBook, BookIssue, LibraryMember, LibraryAuthor, LibraryPublisher, 
+    BookCategory, BookReservation, LibraryFine
+)  # noqa
 from app.models.timetable_grid import TimetableVersion, TimetableSlot  # noqa
 from app.models.notification import Notification  # noqa
 from app.models.audit_log import AuditLog  # noqa

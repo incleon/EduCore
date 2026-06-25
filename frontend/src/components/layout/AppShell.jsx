@@ -13,12 +13,25 @@ export default function AppShell({ children }) {
   const { user, can, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const visibleResources = resourceConfigs.filter((item) => can(item.permission))
+  const isStudent = user?.roles?.includes('student') && !user?.roles?.includes('admin')
+  const isLibrarian = user?.roles?.includes('librarian') && !user?.roles?.includes('admin')
+  const isAccountant = user?.roles?.includes('accountant') && !user?.roles?.includes('admin')
+  
+  const visibleResources = resourceConfigs.filter((item) => {
+    if (!can(item.permission)) return false
+    if (isStudent && item.eyebrow === 'Academics') return false
+    if (isLibrarian && !(item.slug.startsWith('library') || item.slug === 'book-issues')) return false
+    if (isAccountant && item.eyebrow !== 'Finance') return false
+    return true
+  })
+
   const searchItems = [
     { label: 'Overview', path: '/dashboard', eyebrow: 'Workspace' },
     ...visibleResources.map((item) => ({ label: item.label, path: `/${item.slug}`, eyebrow: item.eyebrow })),
-    { label: 'Timetable', path: '/timetable', eyebrow: 'Learning' },
-    { label: 'Assignments', path: '/assignments', eyebrow: 'Learning' },
+    ...(!isLibrarian ? [
+      { label: 'Timetable', path: '/timetable', eyebrow: 'Learning' },
+      { label: 'Assignments', path: '/assignments', eyebrow: 'Learning' },
+    ] : []),
     { label: 'Profile', path: '/profile', eyebrow: 'Account' },
   ].filter((item) => item.label.toLowerCase().includes(workspaceQuery.toLowerCase())).slice(0, 6)
 
@@ -41,9 +54,17 @@ export default function AppShell({ children }) {
           <NavLink to="/dashboard" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
             <LayoutDashboard size={18} /><span>Overview</span>
           </NavLink>
-          {['People', 'Academics', 'Learning', 'Operations'].map((group) => {
+          {user?.is_hod && !isLibrarian && (
+            <div className="nav-group">
+              <p>HOD Section</p>
+              <NavLink to="/hod-panel" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <LayoutDashboard size={18} /><span>HOD Panel</span>
+              </NavLink>
+            </div>
+          )}
+          {['People', 'Academics', 'Learning', 'Operations', 'Finance'].map((group) => {
             const items = visibleResources.filter((item) => item.eyebrow === group)
-            if (!items.length && group !== 'Learning') return null
+            if (!items.length && (group !== 'Learning' || isLibrarian || isAccountant)) return null
             return <div className="nav-group" key={group}>
               <p>{group}</p>
               {items.map(({ slug, label, icon: Icon }) => (
@@ -51,16 +72,23 @@ export default function AppShell({ children }) {
                   <Icon size={18} /><span>{label}</span>
                 </NavLink>
               ))}
-              {group === 'Learning' && (
+              {group === 'People' && can('manage_academic_structure') && !isLibrarian && (
+                <NavLink to="/hod-management" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                  <UserRound size={18} /><span>HOD Management</span>
+                </NavLink>
+              )}
+              {group === 'Learning' && !isLibrarian && (
                 <NavLink to="/assignments" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                   <CalendarRange size={18} /><span>Assignments</span>
                 </NavLink>
               )}
             </div>
           })}
-          <NavLink to="/timetable" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-            <CalendarRange size={18} /><span>Timetable</span>
-          </NavLink>
+          {!isLibrarian && !isAccountant && (
+            <NavLink to="/timetable" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <CalendarRange size={18} /><span>Timetable</span>
+            </NavLink>
+          )}
         </nav>
 
         <div className="sidebar-foot">
@@ -82,7 +110,12 @@ export default function AppShell({ children }) {
             <div className="account-menu">
               <button className="account-trigger" onClick={() => setAccountOpen((open) => !open)}>
                 <span className="avatar">{initials(user.full_name)}</span>
-                <span className="account-copy"><strong>{user.full_name}</strong><small>{user.roles?.[0] || 'Member'}</small></span>
+                <span className="account-copy">
+                  <strong>{user.full_name}</strong>
+                  {user?.is_hod
+                    ? <small className="hod-badge">HOD, {user.hod_branch_names?.[0] || 'Branch'}</small>
+                    : <small>{user.roles?.[0] || 'Member'}</small>}
+                </span>
                 <ChevronDown size={15} />
               </button>
               {accountOpen && <div className="account-popover">

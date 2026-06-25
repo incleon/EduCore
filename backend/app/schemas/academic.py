@@ -15,6 +15,7 @@ class BranchUpdate(BaseModel):
     name: Optional[str] = None
     code: Optional[str] = None
     description: Optional[str] = None
+    hod_id: Optional[int] = None
 
 
 class CurriculumCreate(BaseModel):

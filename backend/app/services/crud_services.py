@@ -21,7 +21,7 @@ from app.repositories.concrete import (
     UserRepository, RoleRepository, PermissionRepository,
     StudentRepository, TeacherRepository, CourseRepository, DepartmentRepository,
     SubjectRepository, AttendanceRepository,
-    MarksRepository, FeeRepository, LibraryBookRepository,
+    MarksRepository, LibraryBookRepository,
     BookIssueRepository, AuditLogRepository,
 )
 from app.models.user import User, UserRole
@@ -448,29 +448,9 @@ class TeacherService(IService):
         return f"{prefix}{next_seq:06d}"
 
     def create(self, data: Dict[str, Any]):
-        if not data.get("employee_id"):
-            last_teacher = self._db.query(Teacher).order_by(Teacher.id.desc()).first()
-            next_seq = (last_teacher.id + 1) if last_teacher else 1
-            data["employee_id"] = f"EMP-{datetime.now().year}-{next_seq:04d}"
-        elif self._teacher_repo.get_by_employee_id(data.get("employee_id", "")):
-            raise ConflictException(detail="Employee ID already exists")
-            
-        if self._user_repo.get_by_email(data.get("email", "")):
-            raise ConflictException(detail="Email already registered")
-
-        user_data = {
-            "email": data.pop("email"),
-            "username": data.pop("username"),
-            "hashed_password": PasswordHasher.hash_password(data.pop("password")),
-            "full_name": data.pop("full_name"),
-            "phone": data.pop("phone", None),
-            "gender": data.pop("gender", None),
-        }
-        user = self._user_repo.create(user_data)
-
-        teacher_role = self._role_repo.get_by_name("teacher")
-        if teacher_role:
-            self._user_repo.assign_role(user.id, teacher_role.id)
+        designation = data.get("designation")
+        if designation not in ["Professor", "Assistant Professor", "Associate Professor"]:
+            raise ValidationException("Designation must be Professor, Assistant Professor, or Associate Professor")
 
         import datetime
         joining_date = data.get("joining_date")
@@ -485,12 +465,66 @@ class TeacherService(IService):
         else:
             year = datetime.datetime.now().year
             
-        data["faculty_id"] = self.generate_faculty_id(year)
+        faculty_id = self.generate_faculty_id(year)
 
+        if not data.get("employee_id"):
+            last_teacher = self._db.query(Teacher).order_by(Teacher.id.desc()).first()
+            next_seq = (last_teacher.id + 1) if last_teacher else 1
+            from datetime import datetime as dt
+            data["employee_id"] = f"EMP-{dt.now().year}-{next_seq:04d}"
+        elif self._teacher_repo.get_by_employee_id(data.get("employee_id", "")):
+            raise ConflictException(detail="Employee ID already exists")
+
+        full_name = data.get("full_name", "Teacher").strip()
+        first_name = full_name.split()[0].lower() if full_name else "teacher"
+        import re
+        first_name = re.sub(r'[^a-z0-9]', '', first_name)
+        faculty_id_lower = faculty_id.lower()
+        institutional_email = f"{first_name}.{faculty_id_lower}@cms.edu"
+            
+        if self._user_repo.get_by_email(institutional_email):
+            raise ConflictException(detail="Generated email already registered")
+
+        import secrets
+        import string
+        alphabet = string.ascii_letters + string.digits
+        password = ''.join(secrets.choice(alphabet) for i in range(10))
+        username = faculty_id_lower
+
+        user_data = {
+            "email": institutional_email,
+            "username": username,
+            "hashed_password": PasswordHasher.hash_password(password),
+            "full_name": full_name,
+            "phone": data.pop("phone", None),
+            "gender": data.pop("gender", None),
+        }
+        
+        # Remove dummy inputs from frontend if present
+        data.pop("email", None)
+        data.pop("username", None)
+        data.pop("password", None)
+        data.pop("full_name", None)
+
+        user = self._user_repo.create(user_data)
+
+        teacher_role = self._role_repo.get_by_name("teacher")
+        if teacher_role:
+            self._user_repo.assign_role(user.id, teacher_role.id)
+
+        data["faculty_id"] = faculty_id
         data["user_id"] = user.id
         teacher = self._teacher_repo.create(data)
         self._db.refresh(teacher)
-        return teacher
+
+        email_data = {
+            "teacher_name": full_name,
+            "institutional_email": institutional_email,
+            "faculty_id": faculty_id,
+            "generated_password": password,
+            "personal_email": data.get("email") # fallback if needed, but not used typically for teachers in this schema unless added. Assuming institutional is fine or we can pass None. Let's just pass what's needed.
+        }
+        return teacher, email_data
 
     def update(self, id: int, data: Dict[str, Any]):
         teacher = self._teacher_repo.get_by_id(id)
@@ -547,12 +581,15 @@ class CourseService(IService):
             raise NotFoundException("Course", id)
         return course
 
-    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", department_id=None):
+    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", department_id=None, branch_id=None):
         skip = (page - 1) * page_size
         from sqlalchemy import or_
         from app.models.course import Course
         query = self._db.query(Course).filter(Course.is_deleted == False)
         if department_id: query = query.filter(Course.department_id == department_id)
+        if branch_id:
+            from app.models.academic import Branch
+            query = query.join(Branch).filter(Branch.id == branch_id)
         if search:
             term = f"%{search}%"; query = query.filter(or_(Course.name.ilike(term), Course.code.ilike(term)))
         total = query.count(); items = query.order_by(Course.id.desc()).offset(skip).limit(page_size).all()
@@ -625,14 +662,21 @@ class DepartmentService(IService):
             raise NotFoundException("Department", id)
         return dept
 
-    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc"):
+    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", branch_id=None):
         skip = (page - 1) * page_size
+        from app.models.department import Department
+        query = self._db.query(Department).filter(Department.is_deleted == False)
+        if branch_id:
+            from app.models.academic import Branch
+            from app.models.course import Course
+            query = query.join(Course).join(Branch).filter(Branch.id == branch_id)
         if search:
-            items = self._dept_repo.search(["name", "code"], search, skip, page_size)
-            total = self._dept_repo.search_count(["name", "code"], search)
-        else:
-            items = self._dept_repo.get_all(skip, page_size, sort_by, sort_order)
-            total = self._dept_repo.count()
+            from sqlalchemy import or_
+            term = f"%{search}%"
+            query = query.filter(or_(Department.name.ilike(term), Department.code.ilike(term)))
+        
+        total = query.count()
+        items = query.order_by(Department.id.desc()).offset(skip).limit(page_size).all()
         from app.utils.serializer import serialize_sqlalchemy_obj
         return {"items": serialize_sqlalchemy_obj(items), "total": total, "page": page, "page_size": page_size}
 
@@ -748,13 +792,16 @@ class SubjectService(IService):
             raise NotFoundException("Subject", id)
         return subject
 
-    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", department_id=None, allowed_subject_ids=None):
+    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", department_id=None, allowed_subject_ids=None, branch_id=None):
         skip = (page - 1) * page_size
         from sqlalchemy import or_
         from app.models.subject import Subject
         query = self._db.query(Subject).filter(Subject.is_deleted == False)
         if allowed_subject_ids is not None: query = query.filter(Subject.id.in_(allowed_subject_ids))
         if department_id: query = query.filter(Subject.department_id == department_id)
+        if branch_id:
+            from app.models.academic import CurriculumSubject
+            query = query.join(CurriculumSubject).filter(CurriculumSubject.branch_id == branch_id)
         if search:
             term=f"%{search}%"; query=query.filter(or_(Subject.name.ilike(term), Subject.code.ilike(term)))
         total=query.count(); items=query.order_by(Subject.id.desc()).offset(skip).limit(page_size).all()
@@ -917,94 +964,7 @@ class MarksService(IService):
         return self._marks_repo.get_student_marks(student_id, semester)
 
 
-# ══════════════════════════════════════════════════════════════
-# FEE SERVICE
-# ══════════════════════════════════════════════════════════════
 
-class FeeService(IService):
-    def __init__(self, db: Session):
-        self._fee_repo = FeeRepository(db)
-        self._db = db
-
-    def get(self, id: int):
-        fee = self._fee_repo.get_by_id(id)
-        if not fee:
-            raise NotFoundException("Fee", id)
-        return fee
-
-    def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc", department_id=None, course_id=None, branch_id=None, student_id=None):
-        from app.models.fee import Fee
-        query=self._db.query(Fee).join(Student).filter(Fee.is_deleted == False)
-        if department_id: query=query.filter(Student.department_id == department_id)
-        if course_id: query=query.filter(Student.course_id == course_id)
-        if branch_id: query=query.filter(Student.branch_id == branch_id)
-        if student_id: query=query.filter(Fee.student_id == student_id)
-        total=query.count(); items=query.order_by(Fee.id.desc()).offset((page-1)*page_size).limit(page_size).all()
-        from app.utils.serializer import serialize_sqlalchemy_obj
-        return {"items": serialize_sqlalchemy_obj(items), "total": total, "page": page, "page_size": page_size}
-
-    def create(self, data: Dict[str, Any]):
-        return self._fee_repo.create(data)
-
-    def update(self, id: int, data: Dict[str, Any]):
-        update_data = {k: v for k, v in data.items() if v is not None}
-        return self._fee_repo.update(id, update_data)
-
-    def delete(self, id: int) -> bool:
-        return self._fee_repo.soft_delete(id)
-
-    def record_payment(self, fee_id: int, paid_amount: float, payment_method: str = "cash", strategy_type: str = "standard"):
-        """Record a fee payment using Strategy & Observer patterns."""
-        from app.core.events import EventDispatcher, FeePaidEvent
-        from app.services.fee_strategies import StandardFeeStrategy, LatePenaltyStrategy, ScholarshipStrategy
-
-        fee = self.get(fee_id)
-        
-        # Strategy Pattern: Select appropriate calculation strategy
-        if strategy_type == "late_penalty":
-            strategy = LatePenaltyStrategy()
-        elif strategy_type == "scholarship":
-            strategy = ScholarshipStrategy()
-        else:
-            strategy = StandardFeeStrategy()
-            
-        calc_result = strategy.calculate(fee, paid_amount)
-        
-        receipt = f"RCP-{uuid.uuid4().hex[:8].upper()}"
-
-        update_data = {
-            "paid_amount": calc_result["paid_amount"],
-            "payment_method": payment_method,
-            "receipt_number": receipt,
-            "paid_date": date.today(),
-            "status": calc_result["status"],
-        }
-        
-        if "remarks" in calc_result:
-            update_data["remarks"] = calc_result["remarks"]
-
-        self._fee_repo.update(fee_id, update_data)
-        self._db.refresh(fee)
-        
-        # Observer Pattern: Dispatch event to decoupled listeners
-        EventDispatcher.dispatch(FeePaidEvent(
-            fee_id=fee.id,
-            student_id=fee.student_id,
-            paid_amount=paid_amount,
-            status=update_data["status"],
-            receipt=receipt
-        ))
-        
-        return fee
-
-    def get_pending_fees(self):
-        return self._fee_repo.get_pending_fees()
-
-    def get_student_fees(self, student_id: int):
-        return self._fee_repo.get_student_fees(student_id)
-
-    def get_filtered_fees(self, course_id: int = None, department_id: int = None, semester: int = None, search: str = None):
-        return self._fee_repo.get_filtered_fees(course_id, department_id, semester, search)
 
 
 # ══════════════════════════════════════════════════════════════
@@ -1013,8 +973,19 @@ class FeeService(IService):
 
 class LibraryService(IService):
     def __init__(self, db: Session):
+        from app.repositories.concrete import (
+            LibraryBookRepository, BookIssueRepository, LibraryMemberRepository,
+            LibraryAuthorRepository, LibraryPublisherRepository, BookCategoryRepository,
+            BookReservationRepository, LibraryFineRepository
+        )
         self._book_repo = LibraryBookRepository(db)
         self._issue_repo = BookIssueRepository(db)
+        self._member_repo = LibraryMemberRepository(db)
+        self._author_repo = LibraryAuthorRepository(db)
+        self._publisher_repo = LibraryPublisherRepository(db)
+        self._category_repo = BookCategoryRepository(db)
+        self._reservation_repo = BookReservationRepository(db)
+        self._fine_repo = LibraryFineRepository(db)
         self._db = db
 
     def get(self, id: int):
@@ -1049,14 +1020,14 @@ class LibraryService(IService):
     def delete(self, id: int) -> bool:
         return self._book_repo.soft_delete(id)
 
-    def issue_book(self, book_id: int, student_id: int, due_date: date):
+    def issue_book(self, book_id: int, member_id: int, due_date: date):
         book = self.get(book_id)
         if book.available_copies <= 0:
             raise ValidationException("No copies available for issue")
 
         issue_data = {
             "book_id": book_id,
-            "student_id": student_id,
+            "member_id": member_id,
             "issue_date": date.today(),
             "due_date": due_date,
             "status": "issued",
@@ -1086,8 +1057,8 @@ class LibraryService(IService):
         self._db.refresh(issue)
         return issue
 
-    def get_active_issues(self, student_id: int = None):
-        return self._issue_repo.get_active_issues(student_id)
+    def get_active_issues(self, member_id: int = None):
+        return self._issue_repo.get_active_issues(member_id)
 
     def get_dashboard_metrics(self):
         from sqlalchemy import func
@@ -1164,50 +1135,64 @@ class TimetableGridService:
     def get_slots(self, version_id: int):
         return self._slot_repo.get_by_version(version_id)
         
+    def get_all_versions(
+        self, department_id: int, course_id: int, semester: int,
+        branch_id: int = None, section_id: int = None,
+    ):
+        return self._version_repo.get_all_versions_by_scope(
+            department_id, course_id, semester, branch_id, section_id
+        )
+
     def save_timetable(self, data: dict, user_id: int):
-        """
-        data = {
-            "department_id": 1,
-            "course_id": 1,
-            "semester": 1,
-            "action": "draft" | "submit",
-            "slots": [
-                {"day_of_week": 1, "slot_index": 1, "subject_id": 1, "teacher_id": 2},
-                ...
-            ]
-        }
-        """
         department_id = data["department_id"]
         course_id = data["course_id"]
         branch_id = data.get("branch_id")
         section_id = data.get("section_id")
         semester = data["semester"]
         
-        # Upsert Version
-        version = self.get_version(
+        # Get latest version
+        latest_version = self.get_version(
             department_id, course_id, semester, branch_id, section_id
         )
-        if not version:
+        
+        new_status = "pending" if data.get("action") == "submit" else "draft"
+        
+        if not latest_version:
             version = self._version_repo.create({
                 "department_id": department_id,
                 "course_id": course_id,
                 "branch_id": branch_id,
                 "section_id": section_id,
                 "semester": semester,
-                "status": "pending" if data.get("action") == "submit" else "draft",
+                "version_number": 1,
+                "status": new_status,
+                "submitted_by_id": user_id
+            })
+        elif latest_version.status == "approved":
+            # Create a new version
+            version = self._version_repo.create({
+                "department_id": department_id,
+                "course_id": course_id,
+                "branch_id": branch_id,
+                "section_id": section_id,
+                "semester": semester,
+                "version_number": latest_version.version_number + 1,
+                "status": new_status,
                 "submitted_by_id": user_id
             })
         else:
+            # Update in place
             update_data = {
-                "status": "pending" if data.get("action") == "submit" else "draft",
+                "status": new_status,
                 "submitted_by_id": user_id
             }
-            self._version_repo.update(version.id, update_data)
+            self._version_repo.update(latest_version.id, update_data)
+            version = latest_version
             
-        # Clear existing slots
-        existing_slots = self.get_slots(version.id)
-        for s in existing_slots:
-            self._slot_repo.hard_delete(s.id)
+            # Clear existing slots
+            existing_slots = self.get_slots(version.id)
+            for s in existing_slots:
+                self._slot_repo.hard_delete(s.id)
             
         # Create new slots
         slots_data = data.get("slots", [])
@@ -1236,6 +1221,41 @@ class TimetableGridService:
         if status == "approved":
             update_data["approved_by_id"] = user_id
         return self._version_repo.update(version_id, update_data)
+
+    def get_teacher_schedule(self, teacher_id: int):
+        from sqlalchemy.orm import joinedload
+        from app.models.timetable_grid import TimetableSlot, TimetableVersion
+        
+        # 1. Fetch all versions
+        all_versions = self._db.query(TimetableVersion).filter(
+            TimetableVersion.is_deleted == False,
+            TimetableVersion.status == "approved"
+        ).all()
+        
+        # 2. Get latest approved version for each scope
+        scope_latest_version = {}
+        for v in all_versions:
+            key = f"{v.course_id}-{v.branch_id}-{v.semester}-{v.section_id}"
+            if key not in scope_latest_version or v.version_number > scope_latest_version[key].version_number:
+                scope_latest_version[key] = v
+                
+        active_version_ids = {v.id for v in scope_latest_version.values()}
+        
+        if not active_version_ids:
+            return []
+            
+        # 3. Fetch slots for this teacher from the active versions
+        slots = self._db.query(TimetableSlot).options(
+            joinedload(TimetableSlot.subject),
+            joinedload(TimetableSlot.version).joinedload(TimetableVersion.branch),
+            joinedload(TimetableSlot.version).joinedload(TimetableVersion.section)
+        ).filter(
+            TimetableSlot.teacher_id == teacher_id,
+            TimetableSlot.version_id.in_(active_version_ids),
+            TimetableSlot.is_deleted == False
+        ).all()
+        
+        return slots
 
     def get_user_activity(self, user_id: int, limit: int = 50):
         return self._audit_repo.get_by_user(user_id, limit)

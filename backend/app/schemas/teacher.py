@@ -9,9 +9,9 @@ from datetime import date, datetime
 
 
 class TeacherCreate(BaseModel):
-    email: str
-    username: str
-    password: str = Field(..., min_length=8)
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
     full_name: str
     phone: Optional[str] = None
     gender: Optional[str] = None

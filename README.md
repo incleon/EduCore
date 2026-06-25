@@ -45,20 +45,18 @@
 - [Troubleshooting](#troubleshooting)
 - [Additional documentation](#additional-documentation)
 
-## Overview
+## Executive Overview
 
-EduCore is an enterprise-style College Management System with a FastAPI backend and a responsive React frontend. It centralizes academic administration and operational workflows while keeping each role inside its assigned permissions.
+EduCore CMS is a comprehensive, enterprise-grade Educational Resource Planning (ERP) and College Management System. Powered by a high-performance FastAPI backend and a dynamic React frontend, EduCore centralizes complex academic administration, financial operations, and learning management into a single, cohesive platform. It is engineered with strict, role-based access controls to ensure institutional data integrity and security.
 
-The application supports:
+**Key Capabilities:**
 
-- Universities, colleges, schools, and multi-program institutes.
-- Programs with or without branches/specializations.
-- Versioned curricula locked to admission batches.
-- Common, specialization, elective, laboratory, project, and internship subjects.
-- Department, course, branch, curriculum, semester, and section-level filtering.
-- Separate administrator, HOD, faculty, student, accountant, and librarian experiences.
-- MySQL/MariaDB persistence with versioned Alembic migrations.
-- Native development, Docker Compose, and production frontend builds.
+- **Scalable Architecture:** Designed for universities, multi-program institutes, and colleges with complex organizational hierarchies.
+- **Intelligent Academic Core:** Manages versioned curricula, dynamic subject classifications, and strict admission-batch locking.
+- **Proactive Analytics & Dashboards:** Actionable, role-specific command centers equipped with smart alerts and visual metrics to drive informed decision-making.
+- **Comprehensive Workflow Automation:** Automates student enrollment, fee tracking, faculty assignments, attendance, and library circulation.
+- **Enterprise Security & Persistence:** Leverages robust MySQL/MariaDB persistence, Alembic versioned schema migrations, and JWT-based authorization.
+- **Flexible Deployment:** Supports native environments, Docker Compose containerization, and scaled production deployments.
 
 ## Feature set
 
@@ -170,29 +168,28 @@ The application supports:
 - Submission and approval ownership.
 - Section-scoped timetable uniqueness.
 
-### Interface and reporting
+### Interface, Analytics, and Reporting
 
-- Responsive React single-page application.
-- Permission-aware sidebar and protected routes.
-- Role-specific dashboards with Recharts visualizations.
-- Reusable record forms and confirmation dialogs.
-- Search, filters, sort controls, status badges, pagination, and CSV export.
-- Complete student/faculty profile modal and role-aware personal profile page.
-- Lazy-loaded route pages and production code splitting.
-- PDF and CSV reporting helpers in the backend.
+- **Responsive React SPA:** Modern, high-performance single-page application using Vite.
+- **Role-Based Command Centers:** Interactive, Bento-box style dashboards tailored for Administrators, HODs, Faculty, Students, Accountants, and Librarians.
+- **Proactive Smart Alerts:** System-generated alerts for low attendance, pending fee ratios, at-risk students, and inventory thresholds to drive proactive administrative action.
+- **Advanced Visualizations:** Integrated Recharts for enrollment funnels, financial breakdowns, and faculty workload distributions.
+- **Permission-Aware Navigation:** Secure, dynamically rendered sidebars and protected routes based on granular JWT entitlements.
+- **Comprehensive Data Grids:** Advanced search, hierarchical filtering, status badges, and pagination for large-scale institutional data.
+- **Data Export & Reporting:** PDF and CSV generation capabilities for audits and compliance reporting.
 
-## Roles and access control
+## Enterprise Roles and Access Control
 
-| Role | Primary capabilities |
-|---|---|
-| Administrator | Full user, role, academic, curriculum, people, timetable, fees, library, reporting, and system access |
-| HOD | Department-focused student, faculty, subject, curriculum, timetable, attendance, marks, and reporting workflows |
-| Faculty | Students, assigned subjects, assignments, attendance, marks, library, dashboard, profile, and academic structure |
-| Student | Own attendance, marks, fees, library, profile, academic structure, and elective selection |
-| Accountant | Fees, payments, student lookup, reports, dashboard, profile, and academic structure |
-| Librarian | Catalogue, issues/returns, student lookup, dashboard, profile, and academic structure |
+EduCore implements a granular, zero-trust authorization model. Permissions are strictly enforced at the API level via FastAPI dependencies, ensuring data security regardless of frontend UI state.
 
-Permissions are enforced on the backend through FastAPI dependencies. Hiding a frontend navigation item is not treated as authorization.
+| Role | Focus Area | Key Dashboard Metrics & Capabilities |
+|---|---|---|
+| **Administrator** | Strategic Oversight | Institutional enrollment trends, financial health, staff-to-student ratios, and system-wide audit feeds. Full read/write access. |
+| **Head of Department** | Departmental Performance | Workload distribution, at-risk subject flagging, faculty management, and curriculum oversight for their specific department. |
+| **Faculty** | Academic Delivery | "Week-at-a-glance" schedules, at-risk student radar, grading queues, attendance tracking, and assignment management. |
+| **Student** | Academic Success | Real-time schedules, urgent deadline tracking, daily attendance, fee status, and personalized curriculum progression. |
+| **Accountant** | Financial Health | High-risk fee defaulter tracking, revenue stream breakdowns, and complete payment reconciliation workflows. |
+| **Librarian** | Resource Circulation | Inventory velocity, low-stock alerts, overdue action triggers, and complete catalogue management. |
 
 ## Academic architecture
 

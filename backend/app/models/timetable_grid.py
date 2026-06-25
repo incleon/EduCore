@@ -18,17 +18,18 @@ class TimetableVersion(BaseModel):
     branch_scope_key = Column(Integer, nullable=False, default=0)
     section_scope_key = Column(Integer, nullable=False, default=0)
     semester = Column(Integer, nullable=False)
+    version_number = Column(Integer, nullable=False, default=1)
     status = Column(String(20), default="draft", nullable=False)
     
     # Audit tracking
     submitted_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
-    # Timetables are independently managed for each program/branch/section scope.
+    # Timetables are independently managed for each program/branch/section scope, with versioning
     __table_args__ = (
         UniqueConstraint(
-            "course_id", "branch_scope_key", "semester", "section_scope_key",
-            name="uq_timetable_scope",
+            "course_id", "branch_scope_key", "semester", "section_scope_key", "version_number",
+            name="uq_timetable_scope_version",
         ),
     )
 

@@ -71,3 +71,40 @@ async def send_student_credentials(
     except Exception as e:
         logger.error(f"Failed to send email to {personal_email}: {str(e)}")
         return False
+
+async def send_teacher_credentials(
+    teacher_name: str,
+    personal_email: str,
+    faculty_id: str,
+    institutional_email: str,
+    generated_password: str
+):
+    """
+    Sends the generated credentials to the teacher's personal email.
+    """
+    if not is_email_service_configured():
+        return False
+
+    try:
+        context = {
+            "teacher_name": teacher_name,
+            "teacher_id": faculty_id,
+            "institutional_email": institutional_email,
+            "generated_password": generated_password
+        }
+        
+        message = MessageSchema(
+            subject="Welcome to EduCore CMS - Your Faculty Account Credentials",
+            recipients=[personal_email],
+            template_body=context,
+            subtype=MessageType.html
+        )
+
+        conf = get_mail_config()
+        fm = FastMail(conf)
+        await fm.send_message(message, template_name="teacher_welcome.html")
+        logger.info(f"Successfully sent credentials email to {personal_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email to {personal_email}: {str(e)}")
+        return False

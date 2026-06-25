@@ -5,8 +5,9 @@ import { useAuth } from '../state/AuthContext'
 
 const yearCode = String(new Date().getFullYear()).slice(-2)
 const demos = [
-  ['Administrator', 'admin@cms.edu'], ['Faculty', 'faculty1@cms.edu'],
-  ['Student', `aarav.${yearCode}btcs001@cms.edu`], ['Accountant', 'accountant.demo@cms.edu'],
+  ['Administrator', 'admin@cms.edu'], ['HOD', 'faculty1@cms.edu'],
+  ['Faculty', 'faculty2@cms.edu'], ['Student', `aarav.${yearCode}btcs001@cms.edu`],
+  ['Accountant', 'accountant.demo@cms.edu'], ['Librarian', 'librarian.demo@cms.edu'],
 ]
 
 export default function LoginPage() {

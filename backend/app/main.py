@@ -29,6 +29,11 @@ from starlette.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging_config import setup_logging, get_logger
 from app.core.exception_handlers import register_exception_handlers
+from starlette.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+from app.core.logging_config import setup_logging, get_logger
+from app.core.exception_handlers import register_exception_handlers
 from app.database.session import init_db, SessionLocal
 from app.database.seed import seed_system_data
 from app.middleware.audit_middleware import AuditMiddleware
@@ -38,15 +43,15 @@ from app.routers.auth import router as auth_router
 from app.routers.api_routes import (
     users_router, students_router, teachers_router,
     courses_router, departments_router, subjects_router,
-    attendance_router, marks_router, fees_router, library_router,
+    attendance_router, marks_router, library_router,
     timetables_router
 )
+from app.routers.finance import router as finance_router
 from app.routers.captcha import router as captcha_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.notifications import router as notifications_router
 from app.routers.academic import router as academic_router
 from app.routers.assignments import assignments_router
-
 
 # ── Setup logging before anything else ───────────────────────
 setup_logging()
@@ -136,7 +141,7 @@ def create_app() -> FastAPI:
     app.include_router(subjects_router)
     app.include_router(attendance_router)
     app.include_router(marks_router)
-    app.include_router(fees_router)
+    app.include_router(finance_router, prefix="/api/finance", tags=["Finance"])
     app.include_router(library_router)
     app.include_router(timetables_router)
     app.include_router(dashboard_router)

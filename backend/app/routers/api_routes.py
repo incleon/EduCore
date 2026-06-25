@@ -21,7 +21,7 @@ from app.core.portfolio import (
 from app.services.crud_services import (
     UserService, StudentService, TeacherService, CourseService, DepartmentService,
     SubjectService, AttendanceService, MarksService,
-    FeeService, LibraryService, AuditService,
+    LibraryService, AuditService,
 )
 from app.schemas.user import UserCreate, UserUpdate
 from app.schemas.student import StudentCreate, StudentUpdate
@@ -31,8 +31,13 @@ from app.schemas.department import DepartmentCreate, DepartmentUpdate
 from app.schemas.subject import SubjectCreate, SubjectUpdate, SubjectTeacherAssign
 from app.schemas.attendance import AttendanceCreate, AttendanceBulkCreate, AttendanceUpdate
 from app.schemas.marks import MarksCreate, MarksUpdate
-from app.schemas.fee import FeeCreate, FeePayment, FeeUpdate
-from app.schemas.library import BookCreate, BookUpdate, BookIssueCreate, BookIssueReturn
+
+from app.schemas.library import (
+    BookCreate, BookUpdate, BookIssueCreate, BookIssueReturn,
+    CategoryCreate, CategoryResponse, AuthorCreate, AuthorResponse,
+    PublisherCreate, PublisherResponse, MemberCreate, MemberResponse,
+    ReservationCreate, ReservationResponse, FineCreate, FineResponse
+)
 from app.utils.serializer import serialize_sqlalchemy_obj
 
 
@@ -170,7 +175,7 @@ def get_student(
 
 
 from fastapi import BackgroundTasks
-from app.services.email_service import send_student_credentials
+from app.services.email_service import send_student_credentials, send_teacher_credentials
 
 def _format_student(student):
     return {
@@ -301,10 +306,21 @@ def get_teacher(
 
 @teachers_router.post("", status_code=201)
 def create_teacher(
-    data: TeacherCreate, db: Session = Depends(get_db),
+    data: TeacherCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
     current_user=Depends(RoleChecker(["admin"])),
 ):
-    teacher = TeacherService(db).create(data.model_dump())
+    teacher, email_data = TeacherService(db).create(data.model_dump())
+    if email_data and email_data.get("personal_email"):
+        background_tasks.add_task(
+            send_teacher_credentials,
+            email_data["teacher_name"],
+            email_data["personal_email"],
+            email_data["faculty_id"],
+            email_data["institutional_email"],
+            email_data["generated_password"]
+        )
     return _format_teacher(teacher)
 
 
@@ -364,10 +380,10 @@ courses_router = APIRouter(prefix="/api/courses", tags=["Courses"])
 @courses_router.get("")
 def list_courses(
     page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
-    search: Optional[str] = None, department_id: Optional[int] = None, db: Session = Depends(get_db),
-    current_user=Depends(PermissionChecker(["view_departments"])),
+    search: Optional[str] = None, department_id: Optional[int] = None, branch_id: Optional[int] = None, db: Session = Depends(get_db),
+    current_user=Depends(PermissionChecker(["view_departments"]))
 ):
-    return CourseService(db).list(page, page_size, search, department_id=department_id)
+    return CourseService(db).list(page, page_size, search, department_id=department_id, branch_id=branch_id)
 
 
 @courses_router.get("/{course_id}")
@@ -412,10 +428,10 @@ departments_router = APIRouter(prefix="/api/departments", tags=["Departments"])
 @departments_router.get("")
 def list_departments(
     page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
-    search: Optional[str] = None, db: Session = Depends(get_db),
+    search: Optional[str] = None, branch_id: Optional[int] = None, db: Session = Depends(get_db),
     current_user=Depends(PermissionChecker(["view_departments"])),
 ):
-    return DepartmentService(db).list(page, page_size, search)
+    return DepartmentService(db).list(page, page_size, search, branch_id=branch_id)
 
 
 @departments_router.get("/{dept_id}")
@@ -468,14 +484,14 @@ subjects_router = APIRouter(prefix="/api/subjects", tags=["Subjects"])
 
 @subjects_router.get("")
 def list_subjects(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
-                  search: Optional[str] = None, department_id: Optional[int] = None, db: Session = Depends(get_db),
+                  search: Optional[str] = None, department_id: Optional[int] = None, branch_id: Optional[int] = None, db: Session = Depends(get_db),
                   current_user=Depends(PermissionChecker(["view_subjects"]))):
     allowed_ids = None
     if is_scoped_faculty(current_user):
         allowed_ids = get_faculty_portfolio(db, current_user.teacher.id).subject_ids
     return SubjectService(db).list(
         page, page_size, search, department_id=department_id,
-        allowed_subject_ids=allowed_ids,
+        allowed_subject_ids=allowed_ids, branch_id=branch_id,
     )
 
 
@@ -670,59 +686,6 @@ def student_marks(student_id: int, semester: Optional[int] = None,
     return _serialize(records)
 
 
-# ══════════════════════════════════════════════════════════════
-# FEES ROUTER
-# ══════════════════════════════════════════════════════════════
-
-fees_router = APIRouter(prefix="/api/fees", tags=["Fees"])
-
-
-@fees_router.get("")
-def list_fees(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100),
-              department_id: Optional[int] = None, course_id: Optional[int] = None, branch_id: Optional[int] = None, student_id: Optional[int] = None,
-              db: Session = Depends(get_db),
-              current_user=Depends(PermissionChecker(["view_fees"]))):
-    if "student" in current_user.roles and current_user.student:
-        student_id = current_user.student.id
-    return FeeService(db).list(page, page_size, department_id=department_id, course_id=course_id, branch_id=branch_id, student_id=student_id)
-
-
-@fees_router.post("", status_code=201)
-def create_fee(data: FeeCreate, db: Session = Depends(get_db),
-               current_user=Depends(PermissionChecker(["manage_fees"]))):
-    return _serialize(FeeService(db).create(data.model_dump()))
-
-
-@fees_router.put("/{fee_id}")
-def update_fee(fee_id: int, data: FeeUpdate, db: Session = Depends(get_db),
-               current_user=Depends(PermissionChecker(["manage_fees"]))):
-    return _serialize(FeeService(db).update(fee_id, data.model_dump(exclude_unset=True)))
-
-
-@fees_router.delete("/{fee_id}")
-def delete_fee(fee_id: int, db: Session = Depends(get_db),
-               current_user=Depends(PermissionChecker(["manage_fees"]))):
-    FeeService(db).delete(fee_id)
-    return {"message": "Fee record deleted successfully"}
-
-
-@fees_router.post("/{fee_id}/pay")
-def pay_fee(fee_id: int, data: FeePayment, db: Session = Depends(get_db),
-            current_user=Depends(get_current_user)):
-    fee = FeeService(db).get(fee_id)
-    
-    if not current_user.has_permission("manage_fees"):
-        if not current_user.student or fee.student_id != current_user.student.id:
-            from app.core.exceptions import UnauthorizedException
-            raise UnauthorizedException(detail="You do not have permission to pay this fee")
-            
-    return _serialize(FeeService(db).record_payment(fee_id, data.paid_amount, data.payment_method))
-
-
-@fees_router.get("/pending")
-def pending_fees(db: Session = Depends(get_db),
-                 current_user=Depends(PermissionChecker(["view_fees"]))):
-    return _serialize(FeeService(db).get_pending_fees())
 
 
 # ══════════════════════════════════════════════════════════════
@@ -761,7 +724,7 @@ def delete_book(book_id: int, db: Session = Depends(get_db),
 @library_router.post("/issue", status_code=201)
 def issue_book(data: BookIssueCreate, db: Session = Depends(get_db),
                current_user=Depends(PermissionChecker(["manage_library"]))):
-    return _serialize(LibraryService(db).issue_book(data.book_id, data.student_id, data.due_date))
+    return _serialize(LibraryService(db).issue_book(data.book_id, data.member_id, data.due_date))
 
 
 @library_router.post("/return/{issue_id}")
@@ -771,11 +734,43 @@ def return_book(issue_id: int, data: BookIssueReturn, db: Session = Depends(get_
 
 
 @library_router.get("/issues")
-def list_issues(student_id: Optional[int] = None, db: Session = Depends(get_db),
+def list_issues(member_id: Optional[int] = None, db: Session = Depends(get_db),
                 current_user=Depends(PermissionChecker(["view_library"]))):
-    if "student" in current_user.roles and current_user.student:
-        student_id = current_user.student.id
-    return _serialize(LibraryService(db).get_active_issues(student_id))
+    if "librarian" not in current_user.roles:
+        # Get member_id for the current user
+        from app.repositories.concrete import LibraryMemberRepository
+        member = LibraryMemberRepository(db).get_by_user_id(current_user.id)
+        if member:
+            member_id = member.id
+        else:
+            member_id = -1 # force empty
+    return _serialize(LibraryService(db).get_active_issues(member_id))
+
+
+# --- Additional Library Routes ---
+@library_router.get("/categories")
+def list_categories(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._category_repo.get_all(0, 100))
+
+@library_router.get("/authors")
+def list_authors(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._author_repo.get_all(0, 100))
+
+@library_router.get("/publishers")
+def list_publishers(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._publisher_repo.get_all(0, 100))
+
+@library_router.get("/members")
+def list_members(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._member_repo.get_all(0, 100))
+
+@library_router.get("/reservations")
+def list_reservations(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._reservation_repo.get_all(0, 100))
+
+@library_router.get("/fines")
+def list_fines(db: Session = Depends(get_db)):
+    return _serialize(LibraryService(db)._fine_repo.get_all(0, 100))
 
 # ══════════════════════════════════════════════════════════════
 # TIMETABLES ROUTER
@@ -801,6 +796,32 @@ class TimetableSaveRequest(BaseModel):
 
 timetables_router = APIRouter(prefix="/api/timetables", tags=["Timetables"])
 
+@timetables_router.get("/teacher")
+def get_teacher_timetable(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Get the consolidated timetable for the currently logged in teacher."""
+    from fastapi import HTTPException
+    if not current_user.teacher:
+        raise HTTPException(status_code=403, detail="Not a teacher")
+        
+    from app.services.crud_services import TimetableGridService
+    service = TimetableGridService(db)
+    slots = service.get_teacher_schedule(current_user.teacher.id)
+    
+    return {
+        "slots": [{
+            "id": item.id,
+            "day_of_week": item.day_of_week,
+            "slot_index": item.slot_index,
+            "subject": ({"id": item.subject.id, "name": item.subject.name, "code": item.subject.code} if item.subject else None),
+            "branch": ({"id": item.version.branch.id, "name": item.version.branch.name, "code": item.version.branch.code} if item.version.branch else None),
+            "section": ({"id": item.version.section.id, "code": item.version.section.code} if item.version.section else None),
+            "semester": item.version.semester
+        } for item in slots]
+    }
+
 @timetables_router.get("")
 def get_timetable(
     department_id: Optional[int] = None,
@@ -808,11 +829,13 @@ def get_timetable(
     branch_id: Optional[int] = None,
     section_id: Optional[int] = None,
     semester: Optional[int] = None,
+    version_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
     """Load the role-scoped timetable workspace previously assembled by the page router."""
     from app.services.crud_services import CourseService, DepartmentService, SubjectService, TeacherService, TimetableGridService
+    from app.repositories.concrete import TimetableVersionRepository
 
     if "student" in current_user.roles and current_user.student:
         department_id = current_user.student.department_id
@@ -848,15 +871,40 @@ def get_timetable(
         } for item in departments]
 
     service = TimetableGridService(db)
-    version = service.get_version(
-        department_id, course_id, semester, branch_id, section_id
-    ) if department_id and course_id and semester else None
+    
+    if version_id:
+        version = TimetableVersionRepository(db).get_by_id(version_id)
+    else:
+        version = service.get_version(
+            department_id, course_id, semester, branch_id, section_id
+        ) if department_id and course_id and semester else None
+        
     slots = service.get_slots(version.id) if version else []
-    subjects = SubjectService(db).get_filtered_subjects(department_id=department_id, semester=semester) if "hod" in current_user.roles and department_id else []
-    teachers = TeacherService(db).get_filtered_teachers(department_id=department_id) if "hod" in current_user.roles and department_id else []
+    
+    versions_history = []
+    if department_id and course_id and semester:
+        all_versions = service.get_all_versions(department_id, course_id, semester, branch_id, section_id)
+        versions_history = [{"id": v.id, "version_number": v.version_number, "status": v.status} for v in all_versions]
+    
+    can_manage = "hod" in current_user.roles or "admin" in current_user.roles
+    subjects = SubjectService(db).get_filtered_subjects(department_id=department_id, semester=semester) if can_manage and department_id else []
+    teachers = TeacherService(db).get_filtered_teachers(department_id=department_id) if can_manage and department_id else []
+    
+    from app.models.academic import Section
+    sections_query = db.query(Section)
+    if course_id:
+        sections_query = sections_query.filter(Section.course_id == course_id)
+    if semester:
+        sections_query = sections_query.filter(Section.semester_number == semester)
+    if branch_id:
+        sections_query = sections_query.filter(Section.branch_id == branch_id)
+    section_options = [{"id": s.id, "code": s.code, "course_id": s.course_id, "semester": s.semester_number, "branch_id": s.branch_id} for s in sections_query.all()]
+
     pending = service.get_pending_versions() if "manage_timetable" in current_user.permissions else []
 
     return {
+        "is_student": "student" in current_user.roles,
+        "is_teacher": "teacher" in current_user.roles,
         "current_department_id": department_id,
         "current_course_id": course_id,
         "current_branch_id": branch_id,
@@ -864,11 +912,14 @@ def get_timetable(
         "current_semester": semester,
         "courses": course_options,
         "departments": department_options,
+        "sections": section_options,
         "version": ({
             "id": version.id, "status": version.status, "semester": version.semester,
+            "version_number": version.version_number,
             "course_id": version.course_id, "branch_id": version.branch_id,
             "section_id": version.section_id,
         } if version else None),
+        "versions_history": versions_history,
         "slots": [{
             "id": item.id, "day_of_week": item.day_of_week, "slot_index": item.slot_index,
             "subject": ({"id": item.subject.id, "name": item.subject.name, "code": item.subject.code} if item.subject else None),
