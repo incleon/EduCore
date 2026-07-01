@@ -37,6 +37,14 @@ class ExpenseResponse(ExpenseBase):
     created_at: datetime
     model_config = {"from_attributes": True}
 
+class ExpenseUpdate(BaseModel):
+    title: Optional[str] = None
+    amount: Optional[float] = Field(None, gt=0)
+    expense_date: Optional[date] = None
+    category_id: Optional[int] = None
+    receipt_url: Optional[str] = None
+    remarks: Optional[str] = None
+
 # ----------------- FeeStructure -----------------
 
 class FeeStructureBase(BaseModel):
@@ -55,6 +63,14 @@ class FeeStructureResponse(FeeStructureBase):
     created_at: datetime
     model_config = {"from_attributes": True}
 
+class FeeStructureUpdate(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[float] = Field(None, gt=0)
+    course_id: Optional[int] = None
+    academic_year: Optional[str] = None
+    semester: Optional[int] = None
+    description: Optional[str] = None
+
 # ----------------- Payment -----------------
 
 class PaymentBase(BaseModel):
@@ -66,6 +82,7 @@ class PaymentBase(BaseModel):
 
 class PaymentCreate(PaymentBase):
     student_fee_id: int
+    status: PaymentStatus = PaymentStatus.SUCCESS
 
 class PaymentResponse(PaymentBase):
     id: int
@@ -73,6 +90,14 @@ class PaymentResponse(PaymentBase):
     status: PaymentStatus
     created_at: datetime
     model_config = {"from_attributes": True}
+
+class PaymentUpdate(BaseModel):
+    amount: Optional[float] = Field(None, gt=0)
+    payment_date: Optional[date] = None
+    payment_method: Optional[PaymentMethod] = None
+    transaction_reference: Optional[str] = None
+    status: Optional[PaymentStatus] = None
+    remarks: Optional[str] = None
 
 # ----------------- StudentFee (Invoice) -----------------
 
@@ -85,7 +110,7 @@ class StudentFeeBase(BaseModel):
     remarks: Optional[str] = None
 
 class StudentFeeCreate(StudentFeeBase):
-    pass
+    status: FeeStatus = FeeStatus.PENDING
 
 class StudentFeeResponse(StudentFeeBase):
     id: int
@@ -95,6 +120,14 @@ class StudentFeeResponse(StudentFeeBase):
     payments: List[PaymentResponse] = []
     created_at: datetime
     model_config = {"from_attributes": True}
+
+class StudentFeeUpdate(BaseModel):
+    fee_structure_id: Optional[int] = None
+    title: Optional[str] = None
+    amount: Optional[float] = Field(None, gt=0)
+    due_date: Optional[date] = None
+    status: Optional[FeeStatus] = None
+    remarks: Optional[str] = None
 
 # ----------------- StaffSalary -----------------
 
@@ -115,3 +148,36 @@ class StaffSalaryResponse(StaffSalaryBase):
     id: int
     created_at: datetime
     model_config = {"from_attributes": True}
+
+class StaffSalaryUpdate(BaseModel):
+    amount: Optional[float] = Field(None, gt=0)
+    payment_date: Optional[date] = None
+    month: Optional[int] = Field(None, ge=1, le=12)
+    year: Optional[int] = Field(None, gt=2000)
+    payment_method: Optional[PaymentMethod] = None
+    transaction_reference: Optional[str] = None
+    remarks: Optional[str] = None
+
+
+# Backwards-compatible payloads for older /api/fees clients.
+class LegacyFeeCreate(BaseModel):
+    student_id: int
+    fee_type: str
+    amount: float = Field(..., gt=0)
+    due_date: Optional[date] = None
+    semester: Optional[int] = None
+    remarks: Optional[str] = None
+
+
+class LegacyFeeUpdate(BaseModel):
+    fee_type: Optional[str] = None
+    amount: Optional[float] = Field(None, gt=0)
+    due_date: Optional[date] = None
+    status: Optional[FeeStatus] = None
+    remarks: Optional[str] = None
+
+
+class LegacyFeePayment(BaseModel):
+    paid_amount: float = Field(..., gt=0)
+    payment_method: PaymentMethod
+    transaction_reference: Optional[str] = None

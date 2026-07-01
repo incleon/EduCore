@@ -995,17 +995,33 @@ class LibraryService(IService):
         return book
 
     def list(self, page=1, page_size=10, search=None, sort_by="id", sort_order="desc"):
+        from sqlalchemy import or_
+        from sqlalchemy.orm import selectinload
+        from app.models.library import LibraryBook, LibraryAuthor, LibraryPublisher, BookCategory
         skip = (page - 1) * page_size
+        query = (
+            self._db.query(LibraryBook)
+            .outerjoin(LibraryAuthor, LibraryBook.author_id == LibraryAuthor.id)
+            .outerjoin(LibraryPublisher, LibraryBook.publisher_id == LibraryPublisher.id)
+            .outerjoin(BookCategory, LibraryBook.category_id == BookCategory.id)
+            .options(
+                selectinload(LibraryBook.author),
+                selectinload(LibraryBook.publisher),
+                selectinload(LibraryBook.category),
+            )
+            .filter(LibraryBook.is_deleted.is_(False))
+        )
         if search:
-            items = self._book_repo.search(
-                ["title", "author", "isbn", "category"], search, skip, page_size
-            )
-            total = self._book_repo.search_count(
-                ["title", "author", "isbn", "category"], search
-            )
-        else:
-            items = self._book_repo.get_all(skip, page_size, sort_by, sort_order)
-            total = self._book_repo.count()
+            term = f"%{search}%"
+            query = query.filter(or_(
+                LibraryBook.title.ilike(term), LibraryBook.isbn.ilike(term),
+                LibraryAuthor.name.ilike(term), LibraryPublisher.name.ilike(term),
+                BookCategory.name.ilike(term),
+            ))
+        total = query.count()
+        order_column = getattr(LibraryBook, sort_by, LibraryBook.id)
+        query = query.order_by(order_column.desc() if sort_order == "desc" else order_column.asc())
+        items = query.offset(skip).limit(page_size).all()
         from app.utils.serializer import serialize_sqlalchemy_obj
         return {"items": serialize_sqlalchemy_obj(items), "total": total, "page": page, "page_size": page_size}
 
@@ -1059,6 +1075,21 @@ class LibraryService(IService):
 
     def get_active_issues(self, member_id: int = None):
         return self._issue_repo.get_active_issues(member_id)
+
+    def get_issues(self, member_id: int = None):
+        from sqlalchemy.orm import selectinload
+        from app.models.library import BookIssue, LibraryMember
+        query = (
+            self._db.query(BookIssue)
+            .options(
+                selectinload(BookIssue.book),
+                selectinload(BookIssue.member).selectinload(LibraryMember.user),
+            )
+            .filter(BookIssue.is_deleted.is_(False))
+        )
+        if member_id is not None:
+            query = query.filter(BookIssue.member_id == member_id)
+        return query.order_by(BookIssue.issue_date.desc()).all()
 
     def get_dashboard_metrics(self):
         from sqlalchemy import func

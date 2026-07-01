@@ -1,4 +1,4 @@
-import { CalendarRange, LoaderCircle, Save, Download, Edit2, User, Users } from 'lucide-react'
+import { CalendarRange, LoaderCircle, Save, Download, Edit2, User } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '../components/ui/PageHeader'
 import { api } from '../lib/api'
@@ -42,7 +42,7 @@ export default function TimetablePage() {
          setTeacherSchedule(res.slots || [])
       }).catch(err => console.error(err)).finally(() => setLoadingTeacher(false))
     }
-  }, [viewMode])
+  }, [viewMode, teacherSchedule.length])
 
   useEffect(() => {
     setLoading(true); setError('')
@@ -80,7 +80,7 @@ export default function TimetablePage() {
       }
       
     }).catch((err) => setError(err.message)).finally(() => setLoading(false))
-  }, [department, course, semester, section, selectedVersionId])
+  }, [department, course, semester, section, selectedVersionId, initialCheck])
 
   const slotMap = useMemo(() => new Map(editableSlots.map((slot) => [`${slot.day_of_week}-${slot.slot_index}`, slot])), [editableSlots])
   const teacherSlotMap = useMemo(() => new Map(teacherSchedule.map((slot) => [`${slot.day_of_week}-${slot.slot_index}`, slot])), [teacherSchedule])
@@ -277,7 +277,6 @@ export default function TimetablePage() {
         {data?.is_teacher && (
           <div className="tab-buttons" style={{ display: 'flex', background: 'var(--surface)', borderRadius: '6px', border: '1px solid var(--border)', overflow: 'hidden', marginRight: '10px' }}>
             <button className={`tab-btn ${viewMode === 'teacher' ? 'active' : ''}`} onClick={() => setViewMode('teacher')} style={{ padding: '6px 12px', border: 'none', background: viewMode === 'teacher' ? 'var(--primary)' : 'transparent', color: viewMode === 'teacher' ? 'white' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><User size={14}/> My Schedule</button>
-            <button className={`tab-btn ${viewMode === 'class' ? 'active' : ''}`} onClick={() => setViewMode('class')} style={{ padding: '6px 12px', border: 'none', background: viewMode === 'class' ? 'var(--primary)' : 'transparent', color: viewMode === 'class' ? 'white' : 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}><Users size={14}/> Class Schedules</button>
           </div>
         )}
         

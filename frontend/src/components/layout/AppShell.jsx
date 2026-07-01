@@ -2,6 +2,12 @@ import { useState } from 'react'
 import { Bell, CalendarRange, ChevronDown, Command, LayoutDashboard, LogOut, Menu, Search, UserRound, X } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { resourceConfigs } from '../../config/resources'
+import {
+  canAccessAssignments,
+  canAccessResourceForRole,
+  canAccessTimetable,
+  resourceLabelForRole,
+} from '../../config/roleAccess'
 import { useAuth } from '../../state/AuthContext'
 
 const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
@@ -13,13 +19,14 @@ export default function AppShell({ children }) {
   const { user, can, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const isStudent = user?.roles?.includes('student') && !user?.roles?.includes('admin')
   const isLibrarian = user?.roles?.includes('librarian') && !user?.roles?.includes('admin')
   const isAccountant = user?.roles?.includes('accountant') && !user?.roles?.includes('admin')
+  const showAssignments = canAccessAssignments(user)
+  const showTimetable = canAccessTimetable(user)
   
   const visibleResources = resourceConfigs.filter((item) => {
     if (!can(item.permission)) return false
-    if (isStudent && item.eyebrow === 'Academics') return false
+    if (!canAccessResourceForRole(user, item.slug)) return false
     if (isLibrarian && !(item.slug.startsWith('library') || item.slug === 'book-issues')) return false
     if (isAccountant && item.eyebrow !== 'Finance') return false
     return true
@@ -27,9 +34,11 @@ export default function AppShell({ children }) {
 
   const searchItems = [
     { label: 'Overview', path: '/dashboard', eyebrow: 'Workspace' },
-    ...visibleResources.map((item) => ({ label: item.label, path: `/${item.slug}`, eyebrow: item.eyebrow })),
-    ...(!isLibrarian ? [
+    ...visibleResources.map((item) => ({ label: resourceLabelForRole(user, item), path: `/${item.slug}`, eyebrow: item.eyebrow })),
+    ...(showTimetable ? [
       { label: 'Timetable', path: '/timetable', eyebrow: 'Learning' },
+    ] : []),
+    ...(showAssignments ? [
       { label: 'Assignments', path: '/assignments', eyebrow: 'Learning' },
     ] : []),
     { label: 'Profile', path: '/profile', eyebrow: 'Account' },
@@ -67,24 +76,28 @@ export default function AppShell({ children }) {
             if (!items.length && (group !== 'Learning' || isLibrarian || isAccountant)) return null
             return <div className="nav-group" key={group}>
               <p>{group}</p>
-              {items.map(({ slug, label, icon: Icon }) => (
+              {items.map((item) => {
+                const { slug, icon: Icon } = item
+                const label = resourceLabelForRole(user, item)
+                return (
                 <NavLink key={slug} to={`/${slug}`} onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                   <Icon size={18} /><span>{label}</span>
                 </NavLink>
-              ))}
+                )
+              })}
               {group === 'People' && can('manage_academic_structure') && !isLibrarian && (
                 <NavLink to="/hod-management" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                   <UserRound size={18} /><span>HOD Management</span>
                 </NavLink>
               )}
-              {group === 'Learning' && !isLibrarian && (
+              {group === 'Learning' && showAssignments && (
                 <NavLink to="/assignments" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                   <CalendarRange size={18} /><span>Assignments</span>
                 </NavLink>
               )}
             </div>
           })}
-          {!isLibrarian && !isAccountant && (
+          {showTimetable && (
             <NavLink to="/timetable" onClick={() => setMobileOpen(false)} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               <CalendarRange size={18} /><span>Timetable</span>
             </NavLink>

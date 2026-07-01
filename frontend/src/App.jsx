@@ -5,6 +5,7 @@ import AppShell from './components/layout/AppShell'
 import PermissionGate from './components/layout/PermissionGate'
 import LoginPage from './pages/LoginPage'
 import { resourceConfigs } from './config/resources'
+import { canAccessAssignments, canAccessResourceForRole, canAccessTimetable } from './config/roleAccess'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const HodPanelPage = lazy(() => import('./pages/HodPanelPage'))
@@ -35,16 +36,16 @@ function ProtectedApp() {
         <Route path="/hod-management" element={<PermissionGate permission="manage_academic_structure"><HodManagementPage /></PermissionGate>} />
         {resourceConfigs.map((config) => (
           <Route key={config.slug} path={`/${config.slug}`} element={
-            <PermissionGate permission={config.permission}>
+            <PermissionGate permission={config.permission} check={(u) => canAccessResourceForRole(u, config.slug)}>
               {config.slug === 'attendance' ? <AttendancePage forcedFilters={hodFilters} /> : 
                config.slug === 'fee-collection' ? <FeeCollectionPage /> : 
                <ResourcePage config={config} forcedFilters={hodFilters} />}
             </PermissionGate>
           } />
         ))}
-        <Route path="/assignments" element={<AssignmentsPage />} />
+        <Route path="/assignments" element={<PermissionGate check={canAccessAssignments}><AssignmentsPage /></PermissionGate>} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/timetable" element={<TimetablePage />} />
+        <Route path="/timetable" element={<PermissionGate check={canAccessTimetable}><TimetablePage /></PermissionGate>} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="*" element={<Navigate to={user?.is_hod ? "/hod-panel" : "/dashboard"} replace />} />
       </Routes>

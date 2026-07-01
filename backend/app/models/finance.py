@@ -45,6 +45,9 @@ class FeeStructure(BaseModel):
     semester = Column(Integer, nullable=False)
     description = Column(Text, nullable=True)
 
+    course = relationship("Course", lazy="selectin")
+    student_fees = relationship("StudentFee", back_populates="fee_structure", lazy="dynamic")
+
 
 class StudentFee(BaseModel):
     """An invoice/demand issued to a student."""
@@ -67,6 +70,7 @@ class StudentFee(BaseModel):
 
     # ── RELATIONSHIPS ────────────────────────────────────────
     student = relationship("Student", back_populates="fee_records")
+    fee_structure = relationship("FeeStructure", back_populates="student_fees", lazy="selectin")
     payments = relationship("Payment", back_populates="student_fee", cascade="all, delete-orphan", lazy="selectin")
 
     @property
@@ -103,6 +107,8 @@ class ExpenseCategory(BaseModel):
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text, nullable=True)
 
+    expenses = relationship("Expense", back_populates="category", lazy="dynamic")
+
 
 class Expense(BaseModel):
     """Operational expenses of the school/college."""
@@ -122,6 +128,9 @@ class Expense(BaseModel):
     )
     remarks = Column(Text, nullable=True)
 
+    category = relationship("ExpenseCategory", back_populates="expenses", lazy="selectin")
+    recorded_by_user = relationship("User", foreign_keys=[recorded_by], lazy="selectin")
+
 
 class StaffSalary(BaseModel):
     """Flat salary payout records for staff/teachers."""
@@ -138,3 +147,5 @@ class StaffSalary(BaseModel):
     payment_method = Column(SAEnum(PaymentMethod), nullable=False)
     transaction_reference = Column(String(100), nullable=True)
     remarks = Column(Text, nullable=True)
+
+    user = relationship("User", foreign_keys=[user_id], lazy="selectin")

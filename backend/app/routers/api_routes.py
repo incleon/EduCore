@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
+from app.core.exceptions import ForbiddenException
 from app.core.permissions import PermissionChecker, RoleChecker
 from app.core.portfolio import (
     get_faculty_portfolio, is_scoped_faculty, require_portfolio_assignment,
@@ -620,6 +621,8 @@ def bulk_attendance(data: AttendanceBulkCreate, db: Session = Depends(get_db),
 @attendance_router.get("/student/{student_id}/stats")
 def student_attendance_stats(student_id: int, db: Session = Depends(get_db),
                              current_user=Depends(PermissionChecker(["view_attendance"]))):
+    if current_user.student and current_user.student.id != student_id:
+        raise ForbiddenException(detail="You can only view your own attendance")
     require_portfolio_student(db, current_user, student_id)
     return AttendanceService(db).get_student_stats(student_id)
 
@@ -678,6 +681,8 @@ def delete_marks(marks_id: int, db: Session = Depends(get_db),
 def student_marks(student_id: int, semester: Optional[int] = None,
                   db: Session = Depends(get_db),
                   current_user=Depends(PermissionChecker(["view_marks"]))):
+    if current_user.student and current_user.student.id != student_id:
+        raise ForbiddenException(detail="You can only view your own marks")
     require_portfolio_student(db, current_user, student_id)
     records = MarksService(db).get_student_marks(student_id, semester)
     if is_scoped_faculty(current_user):
@@ -736,7 +741,7 @@ def return_book(issue_id: int, data: BookIssueReturn, db: Session = Depends(get_
 @library_router.get("/issues")
 def list_issues(member_id: Optional[int] = None, db: Session = Depends(get_db),
                 current_user=Depends(PermissionChecker(["view_library"]))):
-    if "librarian" not in current_user.roles:
+    if not ({"admin", "librarian"} & set(current_user.roles)):
         # Get member_id for the current user
         from app.repositories.concrete import LibraryMemberRepository
         member = LibraryMemberRepository(db).get_by_user_id(current_user.id)
@@ -744,33 +749,97 @@ def list_issues(member_id: Optional[int] = None, db: Session = Depends(get_db),
             member_id = member.id
         else:
             member_id = -1 # force empty
-    return _serialize(LibraryService(db).get_active_issues(member_id))
+    return _serialize(LibraryService(db).get_issues(member_id))
 
 
 # --- Additional Library Routes ---
+def _library_page(query, page, page_size):
+    total = query.count()
+    items = query.order_by(query.column_descriptions[0]["entity"].id.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    return {"items": _serialize(items), "total": total, "page": page, "page_size": page_size}
+
+
 @library_router.get("/categories")
-def list_categories(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._category_repo.get_all(0, 100))
+def list_categories(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(RoleChecker(["admin", "librarian"])),
+):
+    from app.models.library import BookCategory
+    return _library_page(db.query(BookCategory).filter(BookCategory.is_deleted.is_(False)), page, page_size)
 
 @library_router.get("/authors")
-def list_authors(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._author_repo.get_all(0, 100))
+def list_authors(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(RoleChecker(["admin", "librarian"])),
+):
+    from app.models.library import LibraryAuthor
+    return _library_page(db.query(LibraryAuthor).filter(LibraryAuthor.is_deleted.is_(False)), page, page_size)
 
 @library_router.get("/publishers")
-def list_publishers(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._publisher_repo.get_all(0, 100))
+def list_publishers(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(RoleChecker(["admin", "librarian"])),
+):
+    from app.models.library import LibraryPublisher
+    return _library_page(db.query(LibraryPublisher).filter(LibraryPublisher.is_deleted.is_(False)), page, page_size)
 
 @library_router.get("/members")
-def list_members(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._member_repo.get_all(0, 100))
+def list_members(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(RoleChecker(["admin", "librarian"])),
+):
+    from sqlalchemy.orm import selectinload
+    from app.models.library import LibraryMember
+    return _library_page(
+        db.query(LibraryMember).options(selectinload(LibraryMember.user)).filter(LibraryMember.is_deleted.is_(False)),
+        page, page_size,
+    )
 
 @library_router.get("/reservations")
-def list_reservations(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._reservation_repo.get_all(0, 100))
+def list_reservations(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(PermissionChecker(["view_library"])),
+):
+    from sqlalchemy.orm import selectinload
+    from app.models.library import BookReservation, LibraryMember
+    query = db.query(BookReservation).options(
+        selectinload(BookReservation.book),
+        selectinload(BookReservation.member).selectinload(LibraryMember.user),
+    ).filter(BookReservation.is_deleted.is_(False))
+    if not ({"admin", "librarian"} & set(current_user.roles)):
+        from app.repositories.concrete import LibraryMemberRepository
+        member = LibraryMemberRepository(db).get_by_user_id(current_user.id)
+        query = query.filter(BookReservation.member_id == (member.id if member else -1))
+    return _library_page(query, page, page_size)
 
 @library_router.get("/fines")
-def list_fines(db: Session = Depends(get_db)):
-    return _serialize(LibraryService(db)._fine_repo.get_all(0, 100))
+def list_fines(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    current_user=Depends(PermissionChecker(["view_library"])),
+):
+    from sqlalchemy.orm import selectinload
+    from app.models.library import LibraryFine, LibraryMember
+    query = db.query(LibraryFine).options(
+        selectinload(LibraryFine.issue),
+        selectinload(LibraryFine.member).selectinload(LibraryMember.user),
+    ).filter(LibraryFine.is_deleted.is_(False))
+    if not ({"admin", "librarian"} & set(current_user.roles)):
+        from app.repositories.concrete import LibraryMemberRepository
+        member = LibraryMemberRepository(db).get_by_user_id(current_user.id)
+        query = query.filter(LibraryFine.member_id == (member.id if member else -1))
+    return _library_page(query, page, page_size)
 
 # ══════════════════════════════════════════════════════════════
 # TIMETABLES ROUTER
@@ -837,6 +906,11 @@ def get_timetable(
     from app.services.crud_services import CourseService, DepartmentService, SubjectService, TeacherService, TimetableGridService
     from app.repositories.concrete import TimetableVersionRepository
 
+    restricted_teacher = (
+        "teacher" in current_user.roles
+        and "admin" not in current_user.roles
+        and current_user.teacher is not None
+    )
     if "student" in current_user.roles and current_user.student:
         department_id = current_user.student.department_id
         course_id = current_user.student.course_id
@@ -872,17 +946,37 @@ def get_timetable(
 
     service = TimetableGridService(db)
     
-    if version_id:
+    if restricted_teacher:
+        # Teachers use /api/timetables/teacher, which only returns their own slots.
+        # Never expose a whole class timetable through a hand-crafted version id.
+        version = None
+    elif version_id:
         version = TimetableVersionRepository(db).get_by_id(version_id)
     else:
         version = service.get_version(
             department_id, course_id, semester, branch_id, section_id
         ) if department_id and course_id and semester else None
         
+    if version and "student" in current_user.roles and current_user.student:
+        student = current_user.student
+        owns_version = (
+            version.department_id == student.department_id
+            and version.course_id == student.course_id
+            and version.branch_id == student.branch_id
+            and version.section_id == student.section_id
+            and version.semester == student.current_semester
+            and version.status == "approved"
+        )
+        if not owns_version:
+            raise ForbiddenException(detail="Timetable is outside your enrolled class")
+
+    if version and "student" in current_user.roles and version.status != "approved":
+        version = None
+
     slots = service.get_slots(version.id) if version else []
     
     versions_history = []
-    if department_id and course_id and semester:
+    if department_id and course_id and semester and not restricted_teacher:
         all_versions = service.get_all_versions(department_id, course_id, semester, branch_id, section_id)
         versions_history = [{"id": v.id, "version_number": v.version_number, "status": v.status} for v in all_versions]
     
@@ -891,14 +985,17 @@ def get_timetable(
     teachers = TeacherService(db).get_filtered_teachers(department_id=department_id) if can_manage and department_id else []
     
     from app.models.academic import Section
-    sections_query = db.query(Section)
+    sections_query = db.query(Section).filter(Section.is_deleted.is_(False))
     if course_id:
         sections_query = sections_query.filter(Section.course_id == course_id)
     if semester:
         sections_query = sections_query.filter(Section.semester_number == semester)
     if branch_id:
         sections_query = sections_query.filter(Section.branch_id == branch_id)
-    section_options = [{"id": s.id, "code": s.code, "course_id": s.course_id, "semester": s.semester_number, "branch_id": s.branch_id} for s in sections_query.all()]
+    section_options = [] if restricted_teacher else [
+        {"id": s.id, "code": s.code, "course_id": s.course_id, "semester": s.semester_number, "branch_id": s.branch_id}
+        for s in sections_query.all()
+    ]
 
     pending = service.get_pending_versions() if "manage_timetable" in current_user.permissions else []
 

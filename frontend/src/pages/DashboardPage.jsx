@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, BookOpen, Building2, CalendarCheck2, CalendarDays, CircleDollarSign, GitBranch, GraduationCap, Hash, Layers3, LoaderCircle, ScrollText, Shapes, Sparkles, UsersRound, AlertTriangle, Clock, ListChecks, ArrowRight, UserX, BarChart2, BookMarked, Wallet } from 'lucide-react'
+import { Activity, BookOpen, Building2, CalendarCheck2, CalendarDays, CircleDollarSign, GitBranch, GraduationCap, Hash, Layers3, LoaderCircle, ScrollText, Shapes, Sparkles, UsersRound, AlertTriangle, Clock, ListChecks, ArrowRight, UserX } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, PieChart, Pie, Cell, BarChart, Bar } from 'recharts'
 import { api } from '../lib/api'
 import { useAuth } from '../state/AuthContext'
@@ -41,16 +41,30 @@ export default function DashboardPage() {
     {error && <div className="inline-error">{error}</div>}
 
     {isAdmin && data.system_alerts?.length > 0 && (
-      <section className="panel" style={{ background: '#fef2f2', border: '1px solid #fecaca', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 600, marginBottom: '12px' }}>
-          <AlertTriangle size={20} /> Action Required
+      <section className="action-required" aria-labelledby="action-required-title">
+        <div className="action-required__header">
+          <div className="action-required__icon"><AlertTriangle size={18} /></div>
+          <div className="action-required__copy">
+            <p className="eyebrow">ADMIN ATTENTION</p>
+            <h2 id="action-required-title">Action required</h2>
+            <p>A few campus items need a quick review.</p>
+          </div>
+          <span className="action-required__count">
+            {data.system_alerts.length} {data.system_alerts.length === 1 ? 'item' : 'items'}
+          </span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {data.system_alerts.map((alert, i) => (
-            <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '14px', color: '#991b1b' }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626' }}></span>
-              {alert.message}
-            </div>
+        <div className="action-required__items">
+          {data.system_alerts.map((alert, index) => (
+            <article className={`action-alert action-alert--${alert.type || 'warning'}`} key={`${alert.title || alert.message}-${index}`}>
+              <span className="action-alert__indicator" aria-hidden="true" />
+              <div className="action-alert__body">
+                <strong>{alert.title || 'Campus operations alert'}</strong>
+                <p>{alert.message}</p>
+              </div>
+              <a className="action-alert__link" href={alert.href || '/dashboard'}>
+                {alert.action || 'Review'} <ArrowRight size={14} />
+              </a>
+            </article>
           ))}
         </div>
       </section>

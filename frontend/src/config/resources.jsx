@@ -98,42 +98,42 @@ export const resourceConfigs = [
   {
     slug: 'expenses', label: 'Expenses', eyebrow: 'Finance', icon: TrendingDown,
     endpoint: '/api/finance/expenses', permission: 'view_fees', description: 'School operational expenses.',
-    columns: [['title', 'Title'], ['category.name', 'Category'], ['amount', 'Amount'], ['expense_date', 'Date'], ['payment_method', 'Method']],
+    columns: [['title', 'Title'], ['category.name', 'Category'], ['amount', 'Amount'], ['expense_date', 'Date'], ['recorded_by_user.full_name', 'Recorded by']],
   },
   {
     slug: 'staff-salaries', label: 'Staff Salaries', eyebrow: 'Finance', icon: Banknote,
-    endpoint: '/api/finance/salaries', permission: 'view_fees', description: 'Staff and faculty salary payouts.',
+    endpoint: '/api/finance/staff-salaries', permission: 'view_fees', description: 'Staff and faculty salary payouts.',
     columns: [['user.full_name', 'Staff'], ['amount', 'Amount'], ['payment_date', 'Date'], ['payment_method', 'Method'], ['status', 'Status']],
   },
   {
     slug: 'library', label: 'Library Catalog', eyebrow: 'Operations', icon: Library,
     endpoint: '/api/library/books', permission: 'view_library', description: 'Catalogue availability and lending inventory.',
-    columns: [['isbn', 'ISBN'], ['title', 'Title'], ['author', 'Author'], ['category', 'Category'], ['available_copies', 'Available'], ['price', 'Price']],
+    columns: [['isbn', 'ISBN'], ['title', 'Title'], ['author.name', 'Author'], ['category.name', 'Category'], ['available_copies', 'Available'], ['price', 'Price']],
   },
   {
     slug: 'book-issues', label: 'Issues & Returns', eyebrow: 'Operations', icon: History,
     endpoint: '/api/library/issues', permission: 'view_library', description: 'Active checkouts, overdues and history.',
-    columns: [['book_title', 'Book'], ['student_name', 'Student'], ['issue_date', 'Issued On'], ['due_date', 'Due Date'], ['status', 'Status'], ['fine_amount', 'Fine']],
+    columns: [['book.title', 'Book'], ['member.user.full_name', 'Member'], ['issue_date', 'Issued On'], ['due_date', 'Due Date'], ['status', 'Status'], ['fine_amount', 'Fine']],
   },
   {
     slug: 'library-categories', label: 'Categories', eyebrow: 'Operations', icon: Tags,
     endpoint: '/api/library/categories', permission: 'view_library', description: 'Book categories and subjects.',
-    columns: [['name', 'Name'], ['description', 'Description']],
+    columns: [['name', 'Name'], ['default_rack', 'Default rack']],
   },
   {
     slug: 'library-authors', label: 'Authors', eyebrow: 'Operations', icon: PenTool,
     endpoint: '/api/library/authors', permission: 'view_library', description: 'Book authors.',
-    columns: [['name', 'Name'], ['bio', 'Bio']],
+    columns: [['name', 'Name'], ['biography', 'Biography']],
   },
   {
     slug: 'library-publishers', label: 'Publishers', eyebrow: 'Operations', icon: Printer,
     endpoint: '/api/library/publishers', permission: 'view_library', description: 'Book publishers.',
-    columns: [['name', 'Name'], ['contact_email', 'Email']],
+    columns: [['name', 'Name'], ['contact_info', 'Contact']],
   },
   {
     slug: 'library-members', label: 'Members', eyebrow: 'Operations', icon: Users,
     endpoint: '/api/library/members', permission: 'view_library', description: 'Library memberships.',
-    columns: [['membership_id', 'Membership ID'], ['user.full_name', 'Member'], ['member_type', 'Type'], ['status', 'Status']],
+    columns: [['id', 'Member No.'], ['user.full_name', 'Member'], ['member_type', 'Type'], ['membership_date', 'Joined'], ['is_active', 'Active']],
   },
   {
     slug: 'library-reservations', label: 'Reservations', eyebrow: 'Operations', icon: Bookmark,

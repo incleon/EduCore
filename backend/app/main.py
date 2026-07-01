@@ -46,7 +46,7 @@ from app.routers.api_routes import (
     attendance_router, marks_router, library_router,
     timetables_router
 )
-from app.routers.finance import router as finance_router
+from app.routers.finance import router as finance_router, legacy_router as legacy_finance_router
 from app.routers.captcha import router as captcha_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.notifications import router as notifications_router
@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
     app.include_router(attendance_router)
     app.include_router(marks_router)
     app.include_router(finance_router, prefix="/api/finance", tags=["Finance"])
+    app.include_router(legacy_finance_router)
     app.include_router(library_router)
     app.include_router(timetables_router)
     app.include_router(dashboard_router)

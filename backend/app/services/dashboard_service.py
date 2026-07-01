@@ -11,6 +11,8 @@ OOP Concepts Demonstrated:
 """
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
+from datetime import date, datetime
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -23,6 +25,11 @@ from app.models.finance import StudentFee, Payment
 from app.models.library import LibraryBook, BookIssue
 from app.models.attendance import Attendance
 from app.models.marks import Marks
+from app.models.academic import Assignment, AssignmentSubmission, FacultyAssignment
+from app.models.timetable_grid import TimetableSlot, TimetableVersion
+from app.core.portfolio import get_faculty_portfolio
+from app.services.academic_service import AcademicStructureService
+from app.services.crud_services import TimetableGridService
 from app.repositories.concrete import (
     StudentRepository, TeacherRepository, DepartmentRepository,
     LibraryBookRepository, BookIssueRepository,
@@ -171,8 +178,20 @@ class AdminDashboard(BaseDashboard):
                 {"label": "Pending Fees", "value": f"₹{pending_fees:,.0f}", "icon": "bi-cash-stack", "color": "warning"},
             ],
             "system_alerts": [alert for alert in [
-                {"type": "warning", "message": "Attendance reporting is incomplete for 3 departments today."} if total_teachers > 0 else None,
-                {"type": "danger", "message": f"High pending fee ratio: ₹{pending_fees:,.0f} outstanding."} if pending_fees > 10000 else None
+                {
+                    "type": "warning",
+                    "title": "Attendance reporting",
+                    "message": "Today’s reporting is incomplete for 3 departments.",
+                    "action": "Review attendance",
+                    "href": "/attendance",
+                } if total_teachers > 0 else None,
+                {
+                    "type": "danger",
+                    "title": "Outstanding fee balance",
+                    "message": f"₹{pending_fees:,.0f} remains pending across student invoices.",
+                    "action": "Review invoices",
+                    "href": "/student-fees",
+                } if pending_fees > 10000 else None
             ] if alert],
             "student_staff_ratio": round(total_students / total_teachers, 1) if total_teachers > 0 else 0,
         }
@@ -182,45 +201,102 @@ class TeacherDashboard(BaseDashboard):
     """Teacher dashboard — shows assigned subjects and attendance data."""
 
     def get_stats(self) -> Dict[str, Any]:
-        teacher = None
-        if self._user and self._user.teacher:
-            teacher = self._user.teacher
-
-        assigned_subjects = 0
+        teacher = self._user.teacher if self._user and self._user.teacher else None
         subjects = []
-        
+        week_at_a_glance = []
+        at_risk_students = []
+
         if teacher:
-            # Get subjects directly assigned to this teacher via teacher_id
-            assigned_subject_records = (
-                self._db.query(Subject)
-                .filter(Subject.teacher_id == teacher.id, Subject.is_deleted == False)
+            assignments = (
+                self._db.query(FacultyAssignment)
+                .filter(
+                    FacultyAssignment.teacher_id == teacher.id,
+                    FacultyAssignment.is_deleted.is_(False),
+                )
+                .order_by(FacultyAssignment.id)
                 .all()
             )
-            assigned_subjects = len(assigned_subject_records)
-            
-            for subject in assigned_subject_records:
+            seen_subjects = set()
+            for assignment in assignments:
+                subject = assignment.curriculum_subject.subject
+                if subject.id in seen_subjects:
+                    continue
+                seen_subjects.add(subject.id)
                 subjects.append({
                     "id": subject.id,
                     "name": subject.name,
                     "code": subject.code,
-                    "semester": subject.semester,
-                    "department_name": subject.department.name if subject.department else "N/A",
+                    "semester": assignment.curriculum_subject.semester.number,
+                    "department_name": subject.department.name if subject.department else None,
                 })
 
+            day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+            period_times = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"]
+            schedule = sorted(
+                TimetableGridService(self._db).get_teacher_schedule(teacher.id),
+                key=lambda item: (item.day_of_week, item.slot_index),
+            )
+            for slot in schedule[:8]:
+                version = slot.version
+                scope = [
+                    f"Sem {version.semester}",
+                    version.branch.code if version.branch else None,
+                    f"Sec {version.section.code}" if version.section else None,
+                ]
+                week_at_a_glance.append({
+                    "day": day_names[slot.day_of_week - 1] if 1 <= slot.day_of_week <= 6 else f"Day {slot.day_of_week}",
+                    "time": period_times[slot.slot_index - 1] if 1 <= slot.slot_index <= 8 else f"Period {slot.slot_index}",
+                    "subject": slot.subject.name if slot.subject else "Unassigned",
+                    "room": " · ".join(part for part in scope if part),
+                })
+
+            portfolio = get_faculty_portfolio(self._db, teacher.id)
+            if portfolio.student_ids:
+                attendance_rows = (
+                    self._db.query(Attendance)
+                    .filter(
+                        Attendance.student_id.in_(portfolio.student_ids),
+                        Attendance.subject_id.in_(portfolio.subject_ids),
+                        Attendance.is_deleted.is_(False),
+                    )
+                    .all()
+                )
+                totals = defaultdict(int)
+                attended = defaultdict(int)
+                for record in attendance_rows:
+                    totals[record.student_id] += 1
+                    status = record.status.value if hasattr(record.status, "value") else str(record.status)
+                    if status in {"present", "late"}:
+                        attended[record.student_id] += 1
+
+                risk = []
+                for student_id, total in totals.items():
+                    percentage = round((attended[student_id] / total) * 100, 1) if total else 0
+                    if percentage < 75:
+                        risk.append((percentage, student_id))
+                risk.sort()
+                student_map = {
+                    item.id: item for item in self._db.query(Student).filter(
+                        Student.id.in_([student_id for _, student_id in risk[:5]]),
+                        Student.is_deleted.is_(False),
+                    ).all()
+                } if risk else {}
+                at_risk_students = [{
+                    "name": student_map[student_id].user.full_name,
+                    "reason": f"Attendance {percentage:.1f}%",
+                    "id": student_id,
+                } for percentage, student_id in risk[:5] if student_id in student_map]
+
         return {
-            "assigned_subjects": assigned_subjects,
+            "assigned_subjects": len(subjects),
             "subjects": subjects,
             "stats": [
-                {"label": "Assigned Subjects", "value": assigned_subjects, "icon": "bi-book", "color": "primary"},
+                {"label": "Assigned Subjects", "value": len(subjects), "icon": "bi-book", "color": "primary"},
+                {"label": "Weekly Classes", "value": len(week_at_a_glance), "icon": "bi-calendar-week", "color": "info"},
+                {"label": "Attendance Alerts", "value": len(at_risk_students), "icon": "bi-exclamation-triangle", "color": "warning"},
             ],
-            "week_at_a_glance": [
-                {"day": "Today", "time": "10:00 AM", "subject": "Data Structures", "room": "Room 101"},
-                {"day": "Today", "time": "01:00 PM", "subject": "Algorithms", "room": "Room 102"}
-            ],
-            "at_risk_students": [
-                {"name": "John Doe", "reason": "Low Attendance (45%)", "id": 1},
-                {"name": "Jane Smith", "reason": "Failed Midterm", "id": 2}
-            ]
+            "week_at_a_glance": week_at_a_glance,
+            "at_risk_students": at_risk_students,
         }
 
 
@@ -235,6 +311,8 @@ class StudentDashboard(BaseDashboard):
         attendance_pct = 0.0
         total_subjects = 0
         pending_fees = 0.0
+        deadline_tracker = []
+        real_time_schedule = []
 
         # Build enrollment info from the student's own records
         enrollment = {}
@@ -246,6 +324,72 @@ class StudentDashboard(BaseDashboard):
             total_student_fee = self._db.query(func.sum(StudentFee.amount)).filter(StudentFee.student_id == student.id, StudentFee.status.in_(["pending", "partial", "overdue"]), StudentFee.is_deleted == False).scalar() or 0
             total_student_paid = self._db.query(func.sum(Payment.amount)).join(StudentFee).filter(StudentFee.student_id == student.id, StudentFee.status.in_(["pending", "partial", "overdue"]), StudentFee.is_deleted == False, Payment.status == "success", Payment.is_deleted == False).scalar() or 0
             pending_fees = total_student_fee - total_student_paid
+            total_subjects = len(
+                AcademicStructureService(self._db).resolve_student_subjects(
+                    student.id, student.current_semester
+                )
+            )
+
+            submissions = (
+                self._db.query(AssignmentSubmission)
+                .join(Assignment, AssignmentSubmission.assignment_id == Assignment.id)
+                .filter(
+                    AssignmentSubmission.student_id == student.id,
+                    AssignmentSubmission.status.in_(["pending", "submitted"]),
+                    AssignmentSubmission.is_deleted.is_(False),
+                    Assignment.is_deleted.is_(False),
+                )
+                .order_by(Assignment.due_date)
+                .limit(6)
+                .all()
+            )
+            now = datetime.now()
+            for submission in submissions:
+                due = submission.assignment.due_date
+                days_left = (due.date() - now.date()).days
+                urgency = "high" if days_left <= 2 else "medium" if days_left <= 7 else "low"
+                deadline_tracker.append({
+                    "task": submission.assignment.title,
+                    "date": due.strftime("%b %d"),
+                    "urgency": urgency,
+                    "status": submission.status,
+                })
+
+            version = (
+                self._db.query(TimetableVersion)
+                .filter(
+                    TimetableVersion.department_id == student.department_id,
+                    TimetableVersion.course_id == student.course_id,
+                    TimetableVersion.branch_id == student.branch_id,
+                    TimetableVersion.section_id == student.section_id,
+                    TimetableVersion.semester == student.current_semester,
+                    TimetableVersion.status == "approved",
+                    TimetableVersion.is_deleted.is_(False),
+                )
+                .order_by(TimetableVersion.version_number.desc())
+                .first()
+            )
+            today_number = date.today().isoweekday()
+            if version and today_number <= 6:
+                period_times = ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM"]
+                slots = (
+                    self._db.query(TimetableSlot)
+                    .filter(
+                        TimetableSlot.version_id == version.id,
+                        TimetableSlot.day_of_week == today_number,
+                        TimetableSlot.is_deleted.is_(False),
+                    )
+                    .order_by(TimetableSlot.slot_index)
+                    .all()
+                )
+                for slot in slots:
+                    if not slot.subject:
+                        continue
+                    real_time_schedule.append({
+                        "time": period_times[slot.slot_index - 1] if 1 <= slot.slot_index <= 8 else f"Period {slot.slot_index}",
+                        "subject": slot.subject.name,
+                        "room": f"Sem {version.semester} · Sec {version.section.code if version.section else student.section}",
+                    })
 
             enrollment = {
                 "student_id": student.student_id,
@@ -267,16 +411,11 @@ class StudentDashboard(BaseDashboard):
             "enrollment": enrollment,
             "stats": [
                 {"label": "Attendance", "value": f"{attendance_pct}%", "icon": "bi-calendar-check", "color": "primary"},
+                {"label": "Current Subjects", "value": total_subjects, "icon": "bi-book", "color": "info"},
                 {"label": "Pending Fees", "value": f"₹{pending_fees:,.0f}", "icon": "bi-cash", "color": "warning"},
             ],
-            "deadline_tracker": [
-                {"task": "Midterm Exam", "date": "Oct 15", "urgency": "high"},
-                {"task": "Physics Lab Report", "date": "Oct 18", "urgency": "medium"}
-            ],
-            "real_time_schedule": [
-                {"time": "09:00 AM", "subject": "Physics 101", "room": "Lab 3"},
-                {"time": "11:00 AM", "subject": "Calculus", "room": "Room 402"}
-            ]
+            "deadline_tracker": deadline_tracker,
+            "real_time_schedule": real_time_schedule,
         }
 
 

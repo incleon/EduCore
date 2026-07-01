@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Search, UserRound, ScrollText, CheckCircle2, AlertCircle, Banknote, CreditCard, Landmark, WalletCards, ReceiptIndianRupee, IndianRupee } from 'lucide-react'
+import { Search, UserRound, CheckCircle2, AlertCircle, WalletCards, ReceiptIndianRupee, IndianRupee } from 'lucide-react'
 import { api } from '../lib/api'
 import PageHeader from '../components/ui/PageHeader'
 import './FeeCollectionPage.css'

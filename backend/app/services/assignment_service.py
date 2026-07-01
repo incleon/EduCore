@@ -14,6 +14,9 @@ class AssignmentService:
             FacultyAssignment.teacher_id == teacher_id
         ).all()
 
+    def get_all_assignments(self):
+        return self.db.query(Assignment).order_by(Assignment.due_date.desc()).all()
+
     def get_student_assignments(self, student_id: int):
         # Find all submissions for this student
         return self.db.query(AssignmentSubmission).filter(

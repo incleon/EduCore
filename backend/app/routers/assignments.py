@@ -19,6 +19,8 @@ def get_assignments(db: Session = Depends(get_db), current_user = Depends(get_cu
         return service.get_student_assignments(current_user.student.id)
     elif "teacher" in current_user.roles and current_user.teacher:
         return service.get_teacher_assignments(current_user.teacher.id)
+    elif "admin" in current_user.roles:
+        return service.get_all_assignments()
     return []
 
 @assignments_router.post("", response_model=AssignmentResponse, status_code=201)

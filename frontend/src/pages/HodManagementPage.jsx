@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { GraduationCap, LoaderCircle, CheckCircle2, Building2, BookOpen, Users, UserCog, Network } from 'lucide-react'
+import { LoaderCircle, CheckCircle2, Building2, BookOpen, Users, UserCog, Network } from 'lucide-react'
 import { api } from '../lib/api'
 import PageHeader from '../components/ui/PageHeader'
 import { useAuth } from '../state/AuthContext'

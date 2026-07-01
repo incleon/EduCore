@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user, get_db
 from app.core.exceptions import ForbiddenException
 from app.core.permissions import PermissionChecker, RoleChecker
-from app.core.portfolio import is_scoped_faculty
+from app.core.portfolio import is_scoped_faculty, require_portfolio_student
 from app.models.academic import (
     AcademicSemester, Branch, Curriculum, CurriculumSubject, CurriculumVersion,
     ElectiveGroup, FacultyAssignment, Section, SubjectType,
@@ -30,12 +30,12 @@ def service(db):
 
 
 @router.get("/subject-types")
-def list_subject_types(db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_subject_types(db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     return [_subject_type(item) for item in service(db).list_records(SubjectType)]
 
 
 @router.get("/branches")
-def list_branches(course_id: int | None = None, department_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_branches(course_id: int | None = None, department_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query = db.query(Branch).join(Course).filter(Branch.is_deleted.is_(False))
     if course_id: query = query.filter(Branch.course_id == course_id)
     if department_id: query = query.filter(Course.department_id == department_id)
@@ -60,7 +60,7 @@ def delete_branch(branch_id: int, db: Session = Depends(get_db), current_user=De
 
 
 @router.get("/curricula")
-def list_curricula(course_id: int | None = None, branch_id: int | None = None, department_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_curricula(course_id: int | None = None, branch_id: int | None = None, department_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query=db.query(Curriculum).join(Course).filter(Curriculum.is_deleted.is_(False))
     if course_id: query=query.filter(Curriculum.course_id == course_id)
     if branch_id: query=query.filter(Curriculum.branch_id == branch_id)
@@ -85,7 +85,7 @@ def delete_curriculum(curriculum_id: int, db: Session = Depends(get_db), current
 
 
 @router.get("/curriculum-versions")
-def list_curriculum_versions(curriculum_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_curriculum_versions(curriculum_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query = db.query(CurriculumVersion).join(Curriculum).filter(CurriculumVersion.is_deleted.is_(False))
     if curriculum_id: query = query.filter(CurriculumVersion.curriculum_id == curriculum_id)
     if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
@@ -109,7 +109,7 @@ def delete_curriculum_version(version_id: int, db: Session = Depends(get_db), cu
 
 
 @router.get("/semesters")
-def list_semesters(curriculum_version_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_semesters(curriculum_version_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query = db.query(AcademicSemester).join(CurriculumVersion).join(Curriculum).filter(AcademicSemester.is_deleted.is_(False))
     if curriculum_version_id: query = query.filter(AcademicSemester.curriculum_version_id == curriculum_version_id)
     if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
@@ -133,7 +133,7 @@ def delete_semester(semester_id: int, db: Session = Depends(get_db), current_use
 
 
 @router.get("/sections")
-def list_sections(course_id: int | None = None, branch_id: int | None = None, department_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_sections(course_id: int | None = None, branch_id: int | None = None, department_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query=db.query(Section).join(Course).filter(Section.is_deleted.is_(False))
     if course_id: query=query.filter(Section.course_id == course_id)
     if branch_id: query=query.filter(Section.branch_id == branch_id)
@@ -159,7 +159,7 @@ def delete_section(section_id: int, db: Session = Depends(get_db), current_user=
 
 
 @router.get("/elective-groups")
-def list_elective_groups(semester_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_elective_groups(semester_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     query = db.query(ElectiveGroup).join(AcademicSemester).join(CurriculumVersion).join(Curriculum).filter(ElectiveGroup.is_deleted.is_(False))
     if semester_id: query = query.filter(ElectiveGroup.semester_id == semester_id)
     if branch_id: query = query.filter(Curriculum.branch_id == branch_id)
@@ -183,7 +183,7 @@ def delete_elective_group(group_id: int, db: Session = Depends(get_db), current_
 
 
 @router.get("/curriculum-subjects")
-def list_curriculum_subjects(semester_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_curriculum_subjects(semester_id: int | None = None, branch_id: int | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod"]))):
     return {"items": [_curriculum_subject(item) for item in service(db).list_records(CurriculumSubject, semester_id=semester_id, branch_id=branch_id)]}
 
 
@@ -204,7 +204,7 @@ def delete_curriculum_subject(mapping_id: int, db: Session = Depends(get_db), cu
 
 
 @router.get("/faculty-assignments")
-def list_faculty_assignments(section_id: int | None = None, branch_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(PermissionChecker(["view_academic_structure"]))):
+def list_faculty_assignments(section_id: int | None = None, branch_id: int | None = None, academic_year: str | None = None, db: Session = Depends(get_db), current_user=Depends(RoleChecker(["admin", "hod", "teacher"]))):
     filters = {"section_id": section_id, "academic_year": academic_year}
     if is_scoped_faculty(current_user):
         filters["teacher_id"] = current_user.teacher.id
@@ -246,6 +246,7 @@ def update_student_mapping(student_id: int, data: StudentAcademicMappingUpdate, 
 def get_student_subjects(student_id: int, semester: int | None = Query(None, ge=1, le=20), db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     if not current_user.has_permission("view_students") and (not current_user.student or current_user.student.id != student_id):
         raise ForbiddenException()
+    require_portfolio_student(db, current_user, student_id)
     return {"items": service(db).resolve_student_subjects(student_id, semester)}
 
 

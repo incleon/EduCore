@@ -1,131 +1,321 @@
-# Database setup
+# EduCore database setup
 
-EduCore uses MySQL or MariaDB through SQLAlchemy and Alembic.
+This is the canonical database guide for EduCore CMS. For application
+installation, startup, and everyday commands, use
+[EXECUTION_PLAN.md](EXECUTION_PLAN.md).
 
-## 1. Create the database and account
+EduCore supports MySQL 8.x and MariaDB 10.6+ through SQLAlchemy and PyMySQL.
+Run all backend commands in this guide from the `backend/` directory with the
+Python virtual environment active.
 
-Sign in to MySQL as an administrator:
+## Choose the correct path
+
+| Situation | Required action |
+|---|---|
+| New machine using Docker | Follow [Docker first run](#docker-first-run) |
+| New, empty native MySQL database | Follow [Initialize a new database](#initialize-a-new-database) |
+| Existing EduCore database with `alembic_version` | Follow [Upgrade an existing database](#upgrade-an-existing-database) |
+| Moving an existing database to another machine | Follow [Backup and restore](#backup-and-restore) |
+| Existing tables but no `alembic_version` | Stop and inspect the schema; do not stamp or migrate blindly |
+
+> Important: the initial Alembic revision is a baseline marker and does not
+> create the original tables. Consequently, a fresh database uses
+> `init-db --no-seed` followed by `alembic stamp head`. An existing database
+> uses `alembic upgrade head`. These workflows are not interchangeable.
+
+## 1. Create the database and application user
+
+Start MySQL or MariaDB, then sign in with an administrative account:
+
+```text
+mysql -u root -p
+```
+
+Run:
 
 ```sql
-CREATE DATABASE cms_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'cms_user'@'%' IDENTIFIED BY 'replace-with-a-strong-password';
-GRANT ALL PRIVILEGES ON cms_db.* TO 'cms_user'@'%';
+CREATE DATABASE cms_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER 'cms_user'@'localhost'
+  IDENTIFIED BY 'REPLACE_WITH_A_STRONG_PASSWORD';
+
+GRANT ALL PRIVILEGES ON cms_db.* TO 'cms_user'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-For a local-only account, replace `'%'` with `'localhost'`.
+Use `'localhost'` for a backend running on the same machine. For a backend on
+another host, replace it with that host or a restricted network pattern. Avoid
+`'%'` outside isolated local development.
 
-## 2. Configure the backend
+Confirm the account works:
+
+```text
+mysql -h 127.0.0.1 -P 3306 -u cms_user -p cms_db
+```
+
+## 2. Configure `backend/.env`
+
+Create the local environment file from the repository root.
+
+Windows PowerShell:
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
 ```
 
+macOS/Linux:
+
+```bash
+cp backend/.env.example backend/.env
+```
+
 Set at least:
 
 ```dotenv
-DATABASE_URL=mysql+pymysql://cms_user:your-password@127.0.0.1:3306/cms_db
-SECRET_KEY=generate-a-long-random-production-secret
+DATABASE_URL=mysql+pymysql://cms_user:ENCODED_PASSWORD@127.0.0.1:3306/cms_db
+SECRET_KEY=REPLACE_WITH_A_LONG_RANDOM_SECRET
 DEBUG=True
 ADMIN_EMAIL=admin@cms.edu
 ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
+ADMIN_PASSWORD=REPLACE_WITH_A_STRONG_ADMIN_PASSWORD
+COOKIE_SECURE=False
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-URL-encode passwords containing `@`, `:`, `/`, `#`, or `%` inside `DATABASE_URL`. Never retain the example administrator password outside local development.
+Percent-encode reserved URL characters in the database username or password:
 
-## 3. Initialize a brand-new database
+| Character | Encoding |
+|---|---|
+| `@` | `%40` |
+| `:` | `%3A` |
+| `/` | `%2F` |
+| `#` | `%23` |
+| `%` | `%25` |
 
-Activate the backend environment and enter `backend/`:
+Do not commit `.env`, SQL dumps, or production credentials.
 
-```powershell
+## 3. Initialize a new database
+
+Use this only when `cms_db` contains no EduCore tables.
+
+```text
+cd backend
 python -m app.cli init-db --no-seed
 python -m alembic stamp head
-python -m app.cli init-db
+python -m app.database.seed --system
+python -m alembic current
 ```
 
-This creates the current schema, records it at the current Alembic head, and inserts required system metadata. The legacy baseline must not be replayed against an empty schema created by SQLAlchemy.
+What these commands do:
+
+1. `init-db --no-seed` creates the current schema from SQLAlchemy models.
+2. `alembic stamp head` records that this newly created schema matches the
+   current migration head without replaying historical migrations.
+3. `seed --system` creates or reconciles roles, permissions, subject types, and
+   the bootstrap administrator.
+4. `alembic current` confirms that the database is tracked at the current head.
+
+Do not run `alembic upgrade head` first on an empty database. The baseline
+revision intentionally contains no table-creation operations.
 
 ## 4. Upgrade an existing database
 
-```powershell
+Use this only when the database already has an `alembic_version` table.
+
+Back up the database first, stop application writes, then run:
+
+```text
 cd backend
+python -m alembic current
+python -m alembic heads
 python -m alembic upgrade head
-python -m app.cli init-db
+python -m app.database.seed --system
+python -m alembic current
 ```
 
-Revision `0005_hierarchy_sequences` performs two important upgrades:
+The final `current` revision must match `heads`. Do not hard-code a revision
+number in operational instructions; the head changes when migrations are added.
 
-- Makes `Course.department_id` the canonical Department → Course relationship and removes the obsolete inverse department link.
-- Adds `student_sequences`, which tracks the last issued number for each admission-year/course/branch scope.
+Never use `alembic stamp head` to “fix” an unknown existing database. Stamping
+changes migration metadata without changing tables and can hide a schema
+mismatch.
 
-The migration is restart-safe for MySQL’s non-transactional DDL behavior.
+## 5. System data and demonstration data
 
-## Startup behavior
-
-Backend startup does not seed dummy courses, departments, people, or transactions. It only reconciles:
+Normal backend startup reconciles only permanent system metadata:
 
 - Roles and permissions.
 - Role-permission mappings.
 - Fixed subject types.
 - A bootstrap administrator when no administrator exists.
 
-An existing administrator’s username, email, and password hash are never overwritten.
+It does not replace an existing administrator’s password and does not
+automatically insert demonstration business records.
 
-## Demo seeding
+To explicitly create the comprehensive demonstration dataset:
 
-To create the complete demo dataset explicitly:
-
-```powershell
+```text
 cd backend
 python -m app.database.seed
 ```
 
-The command is designed to be repeatable and uses stable codes to avoid duplicate demo records. It seeds ten records for each applicable academic and operational entity. Audit logs and notifications remain runtime-generated.
+The comprehensive seed is intended for development and demonstrations. It
+replaces business data while preserving the administrator and authorization
+metadata. Do not run it against a database containing valuable institutional
+data.
 
-Student IDs follow:
-
-```text
-YY + course code + branch code + sequence
-26BTCS001
-```
-
-Institutional email follows:
+To reconcile system metadata only:
 
 ```text
-firstname.26btcs001@cms.edu
+python -m app.database.seed --system
 ```
 
-The ten seeded B.Tech Computer Science students occupy sequences `001`–`010`; the next matching registration receives `011`.
+To delete business data and all non-admin users while preserving the current
+administrator and system metadata:
 
-## Admin-preserving cleanup
-
-To permanently clean the database while keeping the current administrator and system metadata:
-
-```powershell
-cd backend
+```text
 python -m app.database.seed --clean
 ```
 
-This is destructive. It physically deletes business records and non-admin users, clears student sequences, and frees unique names, codes, usernames, emails, and ISBNs for reuse. Back up important data first.
+`--clean` is destructive. Take a verified backup first.
 
-## Verification
+## 6. Docker first run
 
-```powershell
-python -m alembic current
-python -m compileall -q app
-pytest -q
+The Compose stack creates MySQL and starts the backend. On its first startup,
+the backend creates the current schema and system metadata.
+
+From the repository root:
+
+```text
+docker compose up -d --build
+docker compose logs -f backend
 ```
 
-With the backend running:
+After the backend reports a successful startup, open another terminal and
+record the migration state:
 
-- `/docs` should load when `DEBUG=True`.
-- `GET /captcha/new` should return a CAPTCHA challenge.
-- The configured administrator should be able to sign in.
-- A clean database should contain no business records or non-admin users.
+```text
+docker compose exec backend python -m alembic stamp head
+docker compose exec backend python -m alembic current
+```
 
-## Docker database
+Optional development data:
 
-`docker compose up --build` provisions MySQL and supplies the backend connection to the `db` service. Replace all placeholder passwords before using the Compose configuration outside local development.
+```text
+docker compose exec backend python -m app.database.seed
+```
 
-Never commit `backend/.env`, database dumps, or production credentials.
+For later application upgrades with the existing `mysql_data` volume:
+
+```text
+docker compose stop backend
+docker compose build
+docker compose run --rm backend python -m alembic upgrade head
+docker compose up -d
+docker compose exec backend python -m app.database.seed --system
+```
+
+Change the placeholder Compose passwords before shared or production use.
+Deleting the `mysql_data` volume permanently deletes the database.
+
+## 7. Backup and restore
+
+### Create a backup
+
+Stop or pause writes, then let the client prompt for the password:
+
+```text
+mysqldump -h 127.0.0.1 -P 3306 -u cms_user -p \
+  --single-transaction --quick --routines --triggers --events \
+  --default-character-set=utf8mb4 --no-tablespaces \
+  cms_db > cms_db_backup.sql
+```
+
+PowerShell accepts the same command on one line. If split across lines, use the
+PowerShell backtick instead of `\`.
+
+The dump includes `alembic_version`; do not initialize destination tables before
+restoring a full dump.
+
+### Restore on another machine
+
+Create an empty destination database and user, then run:
+
+```text
+mysql -h DESTINATION_HOST -P 3306 -u cms_user -p \
+  --default-character-set=utf8mb4 cms_db < cms_db_backup.sql
+```
+
+After restoring:
+
+```text
+cd backend
+python -m alembic current
+python -m alembic upgrade head
+python -m app.database.seed --system
+```
+
+Copy `backend/uploads/` separately. Database dumps do not contain uploaded files.
+
+## 8. Verification
+
+From `backend/`:
+
+```text
+python -m alembic current
+python -m alembic heads
+python -m compileall -q app
+python -m pytest -q
+```
+
+Then start the backend and verify:
+
+- `http://127.0.0.1:8000/docs` loads when `DEBUG=True`.
+- `GET /captcha/new` returns a CAPTCHA challenge.
+- The configured administrator can sign in.
+- Students, faculty, academic, finance, library, assignment, and timetable
+  pages load without API errors.
+
+## Troubleshooting
+
+### Cannot connect to MySQL
+
+- Confirm the database service is running.
+- Check the host, port, database name, user, and password.
+- Confirm the user’s allowed host matches where the backend runs.
+- Percent-encode special characters in `DATABASE_URL`.
+- Check that port `3306` is not already occupied when using Docker.
+
+### “Table already exists” during setup
+
+You used the wrong path:
+
+- New empty database: create the schema, then stamp it.
+- Existing tracked database: upgrade it.
+- Restored full dump: do not pre-create tables.
+
+### Existing tables but no migration version
+
+Do not guess a revision and do not stamp head. Back up the database, compare its
+schema with the migration history, and establish the correct baseline before
+continuing.
+
+### Access denied
+
+Recheck the MySQL account host and grants:
+
+```sql
+SHOW GRANTS FOR 'cms_user'@'localhost';
+```
+
+### Reset local Docker data
+
+The following deletes the local Docker database permanently:
+
+```text
+docker compose down -v
+```
+
+Use it only when a disposable local database can be recreated.
