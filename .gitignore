@@ -52,14 +52,3 @@ Thumbs.db
 
 # Alembic
 alembic/versions/*.pyc
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Internal documentation
-SIDEBAR_ROLES_ANALYSIS.md
-PPT.md
-DEPLOYMENT.md
-CURRICULUM_README.md

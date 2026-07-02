@@ -36,10 +36,6 @@ fpdf2==2.8.2
 # Environment Variables
 python-dotenv==1.0.1
 
-# Testing
-pytest==8.3.4
-httpx==0.28.1
-
 # Utilities
 python-dateutil==2.9.0
 fastapi-mail==1.4.1

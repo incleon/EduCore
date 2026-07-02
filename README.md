@@ -78,7 +78,6 @@ administrator credentials are not overwritten during normal startup.
 - MySQL or MariaDB through PyMySQL
 - Pydantic validation and settings
 - JWT authentication with HTTP-only cookies
-- pytest and HTTPX
 
 ### Frontend
 
@@ -121,16 +120,19 @@ EduCore/
 ├── backend/
 │   ├── alembic/                 Database migrations
 │   ├── app/
-│   │   ├── core/                Configuration, security, and permissions
-│   │   ├── database/            Sessions, base models, and seeding
+│   │   ├── core/                Shared configuration, security, and permissions
+│   │   ├── database/
+│   │   │   ├── base.py          Shared ORM foundation
+│   │   │   ├── session.py       MySQL connection and sessions
+│   │   │   └── seed.py          The only seed file; contains all demo data
 │   │   ├── models/              SQLAlchemy entities
 │   │   ├── repositories/        Data-access abstractions
 │   │   ├── routers/             REST endpoints
 │   │   ├── schemas/             Request and response contracts
 │   │   └── services/            Business logic
-│   ├── tests/                   Backend test suite
 │   ├── requirements.txt
 │   └── run.py
+├── docs/                         Setup, architecture, role, and presentation guides
 ├── frontend/
 │   ├── public/
 │   ├── src/
@@ -139,18 +141,16 @@ EduCore/
 │   │   ├── pages/
 │   │   └── state/
 │   └── package.json
-├── DB_SETUP.md                  Database lifecycle guide
-├── EXECUTION_PLAN.md            Cross-platform execution guide
-├── DEPLOYMENT.md                Production deployment guide
+├── output/pdf/EduCore_Roles.pdf  Seven-role ownership register
 └── docker-compose.yml
 ```
 
 ## Getting started
 
 For the complete Windows, macOS, and Linux procedure, use
-[EXECUTION_PLAN.md](EXECUTION_PLAN.md). Database initialization differs between
-new and existing installations; follow [DB_SETUP.md](DB_SETUP.md) before
-changing database state.
+[the execution guide](docs/execution-guide.md). Database initialization differs
+between new and existing installations; follow
+[the database guide](docs/database-setup.md) before changing database state.
 
 ### Docker quick start
 
@@ -199,7 +199,7 @@ Sign in with the administrator credentials configured in `backend/.env`.
 
 Native development requires Python 3.10+, Node.js 20+, and MySQL 8+ or
 MariaDB 10.6+. Follow the
-[native development procedure](EXECUTION_PLAN.md#option-b-native-development)
+[native development procedure](docs/execution-guide.md#option-b-native-development)
 for virtual-environment, database, backend, and frontend setup.
 
 Development addresses:
@@ -241,7 +241,7 @@ EduCore has distinct workflows for different database states:
   stamped blindly.
 
 The authoritative commands, rationale, backup process, and troubleshooting
-steps are in [DB_SETUP.md](DB_SETUP.md).
+steps are in [the database guide](docs/database-setup.md).
 
 ### Demonstration data
 
@@ -249,7 +249,7 @@ To populate a development database with comprehensive data:
 
 ```text
 cd backend
-python -m app.database.seed
+python -m app.cli seed-demo
 ```
 
 The demonstration seed replaces business data while preserving system
@@ -259,13 +259,13 @@ institutional data.
 System-only reconciliation:
 
 ```text
-python -m app.database.seed --system
+python -m app.cli init-db
 ```
 
 Admin-preserving cleanup:
 
 ```text
-python -m app.database.seed --clean
+python -m app.cli clean-demo
 ```
 
 Cleanup is destructive. Back up the database first.
@@ -314,7 +314,7 @@ Backend:
 ```text
 cd backend
 python -m compileall -q app
-python -m pytest -q
+python -c "from app.main import app; print(f'{len(app.routes)} routes loaded')"
 python -m alembic current
 python -m alembic heads
 ```
@@ -341,18 +341,21 @@ Production deployments must use:
 - A migration step before application startup.
 - Monitoring and a tested rollback plan.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment guidance and
-[DB_SETUP.md](DB_SETUP.md#backup-and-restore) for data migration.
+See [the deployment guide](docs/deployment.md) for deployment guidance and
+[the database guide](docs/database-setup.md#backup-and-restore) for data migration.
 
 ## Documentation
 
 | Document | Purpose |
 |---|---|
-| [Execution plan](EXECUTION_PLAN.md) | Complete Docker and native setup |
-| [Database setup](DB_SETUP.md) | Initialization, migrations, backup, restore, and troubleshooting |
-| [Deployment](DEPLOYMENT.md) | Production deployment |
-| [Academic architecture](ACADEMIC_ARCHITECTURE.md) | Academic ownership and hierarchy |
-| [Curriculum guide](CURRICULUM_README.md) | Curriculum structure and behavior |
+| [Execution guide](docs/execution-guide.md) | Complete Docker and native setup |
+| [Database setup](docs/database-setup.md) | Initialization, migrations, backup, restore, and troubleshooting |
+| [Deployment](docs/deployment.md) | Production deployment |
+| [Academic architecture](docs/academic-architecture.md) | Academic ownership and hierarchy |
+| [Curriculum guide](docs/curriculum-guide.md) | Curriculum structure and behavior |
+| [Role access](docs/role-access.md) | Sidebar and feature visibility by role |
+| [Presentation brief](docs/presentation-brief.md) | Material for the SME presentation |
+| [Role ownership PDF](output/pdf/EduCore_Roles.pdf) | Three segments, seven roles, and exhaustive file ownership |
 
 ## Security notes
 

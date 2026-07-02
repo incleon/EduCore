@@ -1,27 +1,40 @@
-"""Supported command-line entry point for routine backend operations."""
+"""Small, supported command line interface for database operations."""
 
 import argparse
 
-from app.database.seed import seed_database
+from app.database.seed import (
+    clean_database_keep_admin,
+    seed_demo_data,
+    seed_system_data,
+)
 from app.database.session import SessionLocal, init_db
 
 
-def initialize_database(seed: bool = True) -> None:
-    init_db()
-    if seed:
-        with SessionLocal() as db:
-            seed_database(db)
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="EduCore backend operations")
+    parser = argparse.ArgumentParser(description="EduCore database operations")
     subcommands = parser.add_subparsers(dest="command", required=True)
-    init_parser = subcommands.add_parser("init-db", help="Create tables and seed base data")
-    init_parser.add_argument("--no-seed", action="store_true", help="Create tables only")
+    subcommands.add_parser(
+        "init-db",
+        help="create missing tables and required roles, permissions, and admin",
+    )
+    subcommands.add_parser(
+        "seed-demo",
+        help="replace business data with the complete demonstration dataset",
+    )
+    subcommands.add_parser(
+        "clean-demo",
+        help="remove business data while preserving the admin and access metadata",
+    )
     args = parser.parse_args()
 
-    if args.command == "init-db":
-        initialize_database(seed=not args.no_seed)
+    init_db()
+    with SessionLocal() as db:
+        if args.command == "init-db":
+            seed_system_data(db)
+        elif args.command == "seed-demo":
+            seed_demo_data(db)
+        else:
+            clean_database_keep_admin(db)
 
 
 if __name__ == "__main__":

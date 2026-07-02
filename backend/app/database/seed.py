@@ -1,14 +1,12 @@
-"""Comprehensive, deterministic EduCore demonstration data.
+"""All permanent metadata and deterministic demonstration data for EduCore.
 
-Run ``python -m app.database.seed`` to replace business data with a complete
-odd-semester campus dataset. Authorization metadata and the current
-administrator are preserved. Run with ``--clean`` to keep only those records,
-or ``--system`` to reconcile authorization metadata without demo data.
+Use ``python -m app.cli seed-demo`` to replace business data with the complete
+odd-semester campus dataset. Use ``python -m app.cli init-db`` for system
+metadata only or ``python -m app.cli clean-demo`` for admin-preserving cleanup.
 """
 
 from __future__ import annotations
 
-import argparse
 import re
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -19,7 +17,6 @@ from sqlalchemy.orm import Session, noload
 from app.core.config import settings
 from app.core.logging_config import get_logger
 from app.core.security import PasswordHasher
-from app.database.session import SessionLocal, init_db
 from app.models.academic import (
     SUBJECT_TYPE_CODES,
     AcademicSemester,
@@ -1164,27 +1161,3 @@ def clean_database_keep_admin(db: Session) -> None:
             db.execute(text("SET FOREIGN_KEY_CHECKS=1"))
             db.commit()
     logger.info("Database cleaned; administrator id=%s was preserved.", admin_id)
-
-
-# Backwards-compatible import for application startup. Startup reconciles only
-# permanent metadata; the comprehensive business seed remains an explicit CLI.
-seed_database = seed_system_data
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="EduCore database seeding")
-    parser.add_argument("--clean", action="store_true", help="delete business data and keep the current admin")
-    parser.add_argument("--system", action="store_true", help="reconcile system metadata only")
-    args = parser.parse_args()
-    init_db()
-    with SessionLocal() as db:
-        if args.clean:
-            clean_database_keep_admin(db)
-        elif args.system:
-            seed_system_data(db)
-        else:
-            seed_demo_data(db)
-
-
-if __name__ == "__main__":
-    main()

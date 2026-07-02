@@ -18,24 +18,20 @@ This is where everything comes together:
 - Template engine setup
 """
 
+from contextlib import asynccontextmanager
 import os
 from pathlib import Path
-from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.logging_config import setup_logging, get_logger
 from app.core.exception_handlers import register_exception_handlers
-from starlette.middleware.cors import CORSMiddleware
-
-from app.core.config import settings
-from app.core.logging_config import setup_logging, get_logger
-from app.core.exception_handlers import register_exception_handlers
-from app.database.session import init_db, SessionLocal
+from app.core.logging_config import get_logger, setup_logging
 from app.database.seed import seed_system_data
+from app.database.session import SessionLocal, init_db
 from app.middleware.audit_middleware import AuditMiddleware
 
 # Import routers
@@ -71,8 +67,6 @@ async def lifespan(app: FastAPI):
     # Create necessary directories
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     Path(settings.LOG_FILE).parent.mkdir(parents=True, exist_ok=True)
-
-    # Initialize database tables
 
     # Initialize database tables
     init_db()
